@@ -1,15 +1,18 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, Search, PlusCircle, Trophy, Zap, Bell, User, LogOut } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import UploadModal from './UploadModal';
 import NotificationDropdown from './NotificationDropdown';
+import BlurText from './effects/BlurText';
+import Dock from './effects/Dock';
+import Magnet from './effects/Magnet';
 
 export default function Navbar() {
   const { user, profile, signOut } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [uploadOpen, setUploadOpen] = useState(false);
 
   const isActive = (path: string) => location.pathname === path;
@@ -17,30 +20,50 @@ export default function Navbar() {
   const navItems = [
     { path: '/', icon: Home, label: 'Home' },
     { path: '/search', icon: Search, label: 'Search' },
-    { path: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
+    { path: '/leaderboard', icon: Trophy, label: 'Board' },
     { path: '/challenges', icon: Zap, label: 'Challenges' },
+  ];
+
+  const dockItems = [
+    ...navItems.map(n => ({
+      icon: <n.icon className="w-5 h-5" />,
+      label: n.label,
+      onClick: () => navigate(n.path),
+      active: isActive(n.path),
+    })),
+    {
+      icon: <PlusCircle className="w-5 h-5" />,
+      label: 'Upload',
+      onClick: () => setUploadOpen(true),
+      active: false,
+    },
+    ...(user ? [{
+      icon: <User className="w-5 h-5" />,
+      label: 'Profile',
+      onClick: () => navigate(`/profile/${user.id}`),
+      active: location.pathname.startsWith('/profile'),
+    }] : []),
   ];
 
   return (
     <>
       <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-border">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
               <span className="text-foreground font-bold text-sm">CR</span>
             </div>
-            <span className="font-bold text-lg gradient-text hidden sm:block">CodeReels</span>
+            <BlurText text="CodeReels" className="font-bold text-lg gradient-text hidden sm:block" />
           </Link>
 
-          {/* Nav Items - Desktop */}
+          {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-1">
             {navItems.map(({ path, icon: Icon, label }) => (
               <Link key={path} to={path}>
                 <Button
                   variant={isActive(path) ? 'default' : 'ghost'}
                   size="sm"
-                  className={`gap-2 ${isActive(path) ? 'gradient-primary' : ''}`}
+                  className={`gap-2 transition-all ${isActive(path) ? 'gradient-primary glow-primary' : ''}`}
                 >
                   <Icon className="w-4 h-4" />
                   <span className="hidden lg:inline">{label}</span>
@@ -48,20 +71,20 @@ export default function Navbar() {
               </Link>
             ))}
 
-            <Button
-              onClick={() => setUploadOpen(true)}
-              className="gradient-primary gap-2 glow-primary"
-              size="sm"
-            >
-              <PlusCircle className="w-4 h-4" />
-              <span className="hidden lg:inline">Upload</span>
-            </Button>
+            <Magnet strength={0.2}>
+              <Button
+                onClick={() => setUploadOpen(true)}
+                className="gradient-primary gap-2 glow-primary"
+                size="sm"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span className="hidden lg:inline">Upload</span>
+              </Button>
+            </Magnet>
           </div>
 
-          {/* Right side */}
           <div className="flex items-center gap-2">
             {user && <NotificationDropdown />}
-
             {user ? (
               <div className="flex items-center gap-2">
                 <Link to={`/profile/${user.id}`}>
@@ -87,26 +110,12 @@ export default function Navbar() {
             )}
           </div>
         </div>
-
-        {/* Mobile Bottom Nav */}
-        <div className="md:hidden fixed bottom-0 left-0 right-0 glass border-t border-border">
-          <div className="flex items-center justify-around py-2">
-            {navItems.map(({ path, icon: Icon }) => (
-              <Link key={path} to={path} className={`p-2 rounded-lg ${isActive(path) ? 'text-primary' : 'text-muted-foreground'}`}>
-                <Icon className="w-5 h-5" />
-              </Link>
-            ))}
-            <button onClick={() => setUploadOpen(true)} className="p-2 text-primary">
-              <PlusCircle className="w-5 h-5" />
-            </button>
-            {user && (
-              <Link to={`/profile/${user.id}`} className="p-2 text-muted-foreground">
-                <User className="w-5 h-5" />
-              </Link>
-            )}
-          </div>
-        </div>
       </nav>
+
+      {/* Mobile Dock */}
+      <div className="md:hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-50">
+        <Dock items={dockItems} />
+      </div>
 
       <UploadModal open={uploadOpen} onOpenChange={setUploadOpen} />
     </>

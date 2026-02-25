@@ -5,6 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import Aurora from '@/components/effects/Aurora';
+import BlurText from '@/components/effects/BlurText';
+import FadeContent from '@/components/effects/FadeContent';
+import Magnet from '@/components/effects/Magnet';
 
 export default function Login() {
   const { signIn } = useAuth();
@@ -27,35 +31,43 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="w-full max-w-sm space-y-8">
+    <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
+      <Aurora colorStops={['#6c63ff', '#00d4aa', '#0a0a0a']} speed={2} />
+
+      <FadeContent className="w-full max-w-sm space-y-8 relative z-10">
         <div className="text-center">
           <div className="w-16 h-16 rounded-2xl gradient-primary glow-primary flex items-center justify-center mx-auto mb-4">
-            <span className="text-2xl font-bold text-foreground">CR</span>
+            <BlurText text="CR" className="text-2xl font-bold text-foreground" />
           </div>
-          <h1 className="text-2xl font-bold gradient-text">Welcome back</h1>
-          <p className="text-sm text-muted-foreground mt-1">Sign in to CodeReels</p>
+          <h1 className="text-2xl font-bold">
+            <BlurText text="Welcome back" className="gradient-text" delay={0.2} />
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            <BlurText text="Sign in to CodeReels" delay={0.4} />
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label>Email</Label>
-            <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" className="bg-muted/30 border-border" />
+            <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" className="bg-muted/30 border-border backdrop-blur-sm" />
           </div>
           <div className="space-y-2">
             <Label>Password</Label>
-            <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" className="bg-muted/30 border-border" />
+            <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" className="bg-muted/30 border-border backdrop-blur-sm" />
           </div>
-          <Button type="submit" disabled={loading} className="w-full gradient-primary glow-primary">
-            {loading ? 'Signing in...' : 'Sign In'}
-          </Button>
+          <Magnet strength={0.2}>
+            <Button type="submit" disabled={loading} className="w-full gradient-primary glow-primary">
+              {loading ? 'Signing in...' : 'Sign In'}
+            </Button>
+          </Magnet>
         </form>
 
         <p className="text-center text-sm text-muted-foreground">
           Don't have an account?{' '}
           <Link to="/register" className="text-primary hover:underline">Register</Link>
         </p>
-      </div>
+      </FadeContent>
     </div>
   );
 }

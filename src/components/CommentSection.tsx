@@ -6,6 +6,7 @@ import { ThumbsUp, ThumbsDown, Send } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import AnimatedList from './effects/AnimatedList';
 
 interface CommentSectionProps {
   reelId: string;
@@ -72,29 +73,31 @@ export default function CommentSection({ reelId, open, onOpenChange }: CommentSe
         </SheetHeader>
 
         <ScrollArea className="flex-1 mt-4 h-[calc(100vh-12rem)]">
-          {comments.map(c => {
-            const profile = profiles[c.user_id];
-            return (
-              <div key={c.id} className="py-3 border-b border-border">
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="w-6 h-6 rounded-full gradient-primary flex items-center justify-center text-[10px] font-bold text-foreground">
-                    {profile?.name?.charAt(0)?.toUpperCase() || 'U'}
+          <AnimatedList>
+            {comments.map(c => {
+              const profile = profiles[c.user_id];
+              return (
+                <div key={c.id} className="py-3 border-b border-border">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-6 h-6 rounded-full gradient-primary flex items-center justify-center text-[10px] font-bold text-foreground">
+                      {profile?.name?.charAt(0)?.toUpperCase() || 'U'}
+                    </div>
+                    <span className="text-xs font-medium text-foreground">{profile?.name || 'User'}</span>
+                    <span className="text-[10px] font-mono text-primary">Lv.{profile?.level || 1}</span>
                   </div>
-                  <span className="text-xs font-medium text-foreground">{profile?.name || 'User'}</span>
-                  <span className="text-[10px] font-mono text-primary">Lv.{profile?.level || 1}</span>
+                  <p className="text-sm text-muted-foreground ml-8">{c.text}</p>
+                  <div className="flex items-center gap-3 ml-8 mt-1">
+                    <button onClick={() => handleVote(c.id, 'up')} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-secondary transition-colors">
+                      <ThumbsUp className="w-3 h-3" /> {c.upvotes}
+                    </button>
+                    <button onClick={() => handleVote(c.id, 'down')} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive transition-colors">
+                      <ThumbsDown className="w-3 h-3" /> {c.downvotes}
+                    </button>
+                  </div>
                 </div>
-                <p className="text-sm text-muted-foreground ml-8">{c.text}</p>
-                <div className="flex items-center gap-3 ml-8 mt-1">
-                  <button onClick={() => handleVote(c.id, 'up')} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-secondary">
-                    <ThumbsUp className="w-3 h-3" /> {c.upvotes}
-                  </button>
-                  <button onClick={() => handleVote(c.id, 'down')} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive">
-                    <ThumbsDown className="w-3 h-3" /> {c.downvotes}
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </AnimatedList>
         </ScrollArea>
 
         {user && (

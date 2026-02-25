@@ -3,13 +3,14 @@ import { Heart, Share2, Bookmark, MessageCircle, Reply, CheckCircle } from 'luci
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { getDifficultyBg, getCategoryColor, calculateWatchPoints } from '@/utils/pointsEngine';
 import PointsToast from './PointsToast';
 import CommentSection from './CommentSection';
 import UploadModal from './UploadModal';
 import { Link } from 'react-router-dom';
+import ClickSpark from './effects/ClickSpark';
+import GlitchText from './effects/GlitchText';
+import ShinyText from './effects/ShinyText';
 
 interface ReelCardProps {
   reel: any;
@@ -29,7 +30,6 @@ export default function ReelCard({ reel, uploaderProfile }: ReelCardProps) {
   const [heartAnim, setHeartAnim] = useState(false);
   const watchTracked = useRef(false);
 
-  // Check if user liked/saved
   useEffect(() => {
     if (!user) return;
     supabase.from('reel_likes').select('id').eq('reel_id', reel.id).eq('user_id', user.id).maybeSingle()
@@ -38,7 +38,6 @@ export default function ReelCard({ reel, uploaderProfile }: ReelCardProps) {
       .then(({ data }) => setSaved(!!data));
   }, [user, reel.id]);
 
-  // Auto-play with IntersectionObserver
   useEffect(() => {
     const video = videoRef.current;
     const container = containerRef.current;
@@ -61,7 +60,6 @@ export default function ReelCard({ reel, uploaderProfile }: ReelCardProps) {
     return () => observer.disconnect();
   }, []);
 
-  // Watch time tracking
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !user) return;
@@ -121,13 +119,24 @@ export default function ReelCard({ reel, uploaderProfile }: ReelCardProps) {
     setPointsToast({ show: true, points: 4 });
   };
 
+  // Difficulty label component
+  const DifficultyLabel = () => {
+    if (reel.difficulty === 'Hard') {
+      return <GlitchText text="HARD" className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${getDifficultyBg(reel.difficulty)}`} />;
+    }
+    return (
+      <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold border ${getDifficultyBg(reel.difficulty)}`}>
+        {reel.difficulty}
+      </span>
+    );
+  };
+
   return (
     <>
       <div
         ref={containerRef}
         className="relative w-full h-[calc(100vh-4rem)] md:h-[calc(100vh-4rem)] snap-start flex items-center justify-center bg-background"
       >
-        {/* Video */}
         <video
           ref={videoRef}
           src={reel.video_url}
@@ -143,17 +152,15 @@ export default function ReelCard({ reel, uploaderProfile }: ReelCardProps) {
 
         {/* Overlay info */}
         <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background/90 to-transparent md:max-w-lg md:mx-auto md:rounded-b-2xl">
-          {/* Tags */}
-          <div className="flex gap-2 mb-2">
+          <div className="flex gap-2 mb-2 items-center">
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold border ${getCategoryColor(reel.category)}`}>
               {reel.category}
             </span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold border ${getDifficultyBg(reel.difficulty)}`}>
-              {reel.difficulty}
-            </span>
+            <DifficultyLabel />
             {reel.is_best_solution && (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-secondary/20 text-secondary border border-secondary/30 flex items-center gap-1">
-                <CheckCircle className="w-3 h-3" /> Verified
+              <span className="flex items-center gap-1">
+                <CheckCircle className="w-3 h-3 text-secondary" />
+                <ShinyText text="Verified Solution" className="text-[10px] font-mono font-semibold" />
               </span>
             )}
           </div>
@@ -173,12 +180,14 @@ export default function ReelCard({ reel, uploaderProfile }: ReelCardProps) {
 
         {/* Right side actions */}
         <div className="absolute right-3 bottom-32 flex flex-col items-center gap-4 md:right-[calc(50%-14rem)]">
-          <button onClick={handleLike} className="flex flex-col items-center gap-1">
-            <motion.div animate={heartAnim ? { scale: [1, 1.4, 1] } : {}} transition={{ duration: 0.3 }}>
-              <Heart className={`w-7 h-7 ${liked ? 'fill-destructive text-destructive' : 'text-foreground'}`} />
-            </motion.div>
-            <span className="text-xs text-foreground font-medium">{likesCount}</span>
-          </button>
+          <ClickSpark color="#ff4757">
+            <button onClick={handleLike} className="flex flex-col items-center gap-1">
+              <motion.div animate={heartAnim ? { scale: [1, 1.4, 1] } : {}} transition={{ duration: 0.3 }}>
+                <Heart className={`w-7 h-7 ${liked ? 'fill-destructive text-destructive' : 'text-foreground'}`} />
+              </motion.div>
+              <span className="text-xs text-foreground font-medium">{likesCount}</span>
+            </button>
+          </ClickSpark>
 
           <button onClick={() => setShowComments(true)} className="flex flex-col items-center gap-1">
             <MessageCircle className="w-7 h-7 text-foreground" />

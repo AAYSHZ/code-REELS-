@@ -5,6 +5,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Search as SearchIcon } from 'lucide-react';
 import { getDifficultyBg, getCategoryColor } from '@/utils/pointsEngine';
 import { Link } from 'react-router-dom';
+import FadeContent from '@/components/effects/FadeContent';
+import SplitText from '@/components/effects/SplitText';
+import TiltedCard from '@/components/effects/TiltedCard';
+import Magnet from '@/components/effects/Magnet';
 
 export default function SearchPage() {
   const [query, setQuery] = useState('');
@@ -25,8 +29,10 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="min-h-screen pt-20 pb-24 px-4 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold gradient-text mb-6">Search & Trending</h1>
+    <FadeContent className="min-h-screen pt-20 pb-24 px-4 max-w-2xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6">
+        <SplitText text="Search & Trending" className="gradient-text" />
+      </h1>
 
       <div className="flex gap-2 mb-4">
         <div className="relative flex-1">
@@ -42,7 +48,7 @@ export default function SearchPage() {
       </div>
 
       <div className="flex gap-2 mb-6">
-        <Select value={category} onValueChange={v => { setCategory(v); }}>
+        <Select value={category} onValueChange={v => setCategory(v)}>
           <SelectTrigger className="w-32 bg-muted/30 border-border text-xs">
             <SelectValue />
           </SelectTrigger>
@@ -54,7 +60,7 @@ export default function SearchPage() {
             <SelectItem value="Hardware">Hardware</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={difficulty} onValueChange={v => { setDifficulty(v); }}>
+        <Select value={difficulty} onValueChange={v => setDifficulty(v)}>
           <SelectTrigger className="w-28 bg-muted/30 border-border text-xs">
             <SelectValue />
           </SelectTrigger>
@@ -65,9 +71,11 @@ export default function SearchPage() {
             <SelectItem value="Hard">Hard</SelectItem>
           </SelectContent>
         </Select>
-        <button onClick={handleSearch} className="gradient-primary px-4 rounded-lg text-sm font-medium text-foreground">
-          Search
-        </button>
+        <Magnet strength={0.15}>
+          <button onClick={handleSearch} className="gradient-primary px-4 rounded-lg text-sm font-medium text-foreground glow-primary">
+            Search
+          </button>
+        </Magnet>
       </div>
 
       {searching ? (
@@ -75,29 +83,31 @@ export default function SearchPage() {
       ) : (
         <div className="space-y-3">
           {results.map(r => (
-            <Link key={r.id} to={`/reel/${r.id}`} className="glass rounded-xl p-4 flex gap-4 hover:border-primary/20 transition-colors block">
-              <div className="w-20 h-28 rounded-lg bg-muted/30 flex-shrink-0 overflow-hidden">
-                <video src={r.video_url} className="w-full h-full object-cover" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-semibold text-foreground truncate">{r.title}</h3>
-                <div className="flex gap-2 mt-2">
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono border ${getCategoryColor(r.category)}`}>{r.category}</span>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono border ${getDifficultyBg(r.difficulty)}`}>{r.difficulty}</span>
+            <TiltedCard key={r.id} tiltAmount={4}>
+              <Link to={`/reel/${r.id}`} className="glass rounded-xl p-4 flex gap-4 hover:border-primary/20 transition-colors block">
+                <div className="w-20 h-28 rounded-lg bg-muted/30 flex-shrink-0 overflow-hidden">
+                  <video src={r.video_url} className="w-full h-full object-cover" />
                 </div>
-                <div className="flex gap-3 mt-2 text-[10px] text-muted-foreground">
-                  <span>❤️ {r.likes_count}</span>
-                  <span>👁 {r.total_views}</span>
-                  <span>💬 {r.shares_count}</span>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-semibold text-foreground truncate">{r.title}</h3>
+                  <div className="flex gap-2 mt-2">
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono border ${getCategoryColor(r.category)}`}>{r.category}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono border ${getDifficultyBg(r.difficulty)}`}>{r.difficulty}</span>
+                  </div>
+                  <div className="flex gap-3 mt-2 text-[10px] text-muted-foreground">
+                    <span>❤️ {r.likes_count}</span>
+                    <span>👁 {r.total_views}</span>
+                    <span>🔗 {r.shares_count}</span>
+                  </div>
                 </div>
-              </div>
-            </Link>
+              </Link>
+            </TiltedCard>
           ))}
           {results.length === 0 && !searching && (
             <p className="text-center text-muted-foreground py-8 text-sm">Search for reels or browse trending content</p>
           )}
         </div>
       )}
-    </div>
+    </FadeContent>
   );
 }
