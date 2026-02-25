@@ -9,6 +9,7 @@ import { Camera, Github, Linkedin, Globe, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
+import ImageCropModal from './ImageCropModal';
 
 interface EditProfileModalProps {
   open: boolean;
@@ -23,6 +24,7 @@ export default function EditProfileModal({ open, onOpenChange, profile, onUpdate
   const [saving, setSaving] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(profile?.avatar || null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: profile?.name || '',
     username: profile?.username || '',
@@ -39,8 +41,14 @@ export default function EditProfileModal({ open, onOpenChange, profile, onUpdate
       toast.error('Image must be under 5MB');
       return;
     }
+    setCropSrc(URL.createObjectURL(file));
+  };
+
+  const handleCropComplete = (blob: Blob) => {
+    const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
     setAvatarFile(file);
-    setAvatarPreview(URL.createObjectURL(file));
+    setAvatarPreview(URL.createObjectURL(blob));
+    setCropSrc(null);
   };
 
   const handleSave = async () => {
@@ -212,6 +220,15 @@ export default function EditProfileModal({ open, onOpenChange, profile, onUpdate
             {saving ? 'Saving...' : 'Save Changes'}
           </Button>
         </div>
+
+        {cropSrc && (
+          <ImageCropModal
+            open={!!cropSrc}
+            onOpenChange={(open) => { if (!open) setCropSrc(null); }}
+            imageSrc={cropSrc}
+            onCropComplete={handleCropComplete}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
