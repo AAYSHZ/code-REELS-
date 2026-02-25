@@ -38,7 +38,6 @@ export default function Rewards() {
       </h1>
       <p className="text-sm text-muted-foreground mb-6">Earn milestones and spend coins</p>
 
-      {/* Coin Balance */}
       <div className="glass rounded-xl p-4 mb-6 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Coins className="w-5 h-5 text-warning" />
@@ -47,7 +46,6 @@ export default function Rewards() {
         <span className="text-xl font-bold text-warning"><CountUp end={coins} duration={2} /></span>
       </div>
 
-      {/* Milestones with SpotlightCard */}
       <h2 className="text-sm font-semibold text-foreground mb-3">Milestones</h2>
       <div className="space-y-3 mb-8">
         {MILESTONES.map(m => {
@@ -56,14 +54,14 @@ export default function Rewards() {
           return (
             <SpotlightCard
               key={m.target}
-              className={`glass rounded-xl p-4 ${unlocked ? 'border-secondary/30' : 'opacity-70'}`}
-              spotlightColor={unlocked ? 'rgba(0, 212, 170, 0.15)' : 'rgba(108, 99, 255, 0.1)'}
+              className={`glass rounded-xl p-4 ${unlocked ? 'border-success/30' : 'opacity-70'}`}
+              spotlightColor={unlocked ? 'hsla(145, 63%, 51%, 0.15)' : 'hsla(260, 100%, 65%, 0.1)'}
             >
               <div className="flex justify-between items-center mb-2">
-                <span className={`text-sm font-semibold ${unlocked ? 'text-secondary' : 'text-foreground'}`}>
+                <span className={`text-sm font-semibold ${unlocked ? 'text-success' : 'text-foreground'}`}>
                   {m.label} XP — {m.reward}
                 </span>
-                {unlocked && <span className="text-xs text-secondary font-medium">✓ Unlocked</span>}
+                {unlocked && <span className="text-xs text-success font-medium">✓ Unlocked</span>}
               </div>
               <Progress value={progress} className="h-2" />
               <p className="text-[10px] text-muted-foreground mt-1">
@@ -74,7 +72,6 @@ export default function Rewards() {
         })}
       </div>
 
-      {/* Coin Spend Options */}
       <h2 className="text-sm font-semibold text-foreground mb-3">Spend Coins</h2>
       <div className="grid gap-3 mb-8">
         {COIN_OPTIONS.map(o => (
@@ -86,14 +83,13 @@ export default function Rewards() {
                 <p className="text-[10px] text-muted-foreground">{o.desc}</p>
               </div>
             </div>
-            <Button size="sm" variant="outline" disabled={coins < o.cost} className="text-xs">
+            <Button size="sm" variant="outline" disabled={coins < o.cost} className="text-xs btn-press">
               {o.cost} <Coins className="w-3 h-3 ml-1 text-warning" />
             </Button>
           </SpotlightCard>
         ))}
       </div>
 
-      {/* Coming Soon */}
       <h2 className="text-sm font-semibold text-foreground mb-3">Coming Soon</h2>
       <div className="grid grid-cols-3 gap-3">
         {COMING_SOON.map(c => (

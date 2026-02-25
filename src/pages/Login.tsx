@@ -23,16 +23,13 @@ export default function Login() {
     setLoading(true);
     const { error } = await signIn(email, password);
     setLoading(false);
-    if (error) {
-      toast.error(error.message);
-    } else {
-      navigate('/');
-    }
+    if (error) toast.error(error.message);
+    else navigate('/');
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
-      <Aurora colorStops={['#6c63ff', '#00d4aa', '#0a0a0a']} speed={2} />
+      <Aurora colorStops={['hsl(260, 100%, 65%)', 'hsl(280, 100%, 70%)', 'hsl(260, 20%, 4%)']} speed={2} />
 
       <FadeContent className="w-full max-w-sm space-y-8 relative z-10">
         <div className="text-center">
@@ -57,7 +54,7 @@ export default function Login() {
             <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" className="bg-muted/30 border-border backdrop-blur-sm" />
           </div>
           <Magnet strength={0.2}>
-            <Button type="submit" disabled={loading} className="w-full gradient-primary glow-primary">
+            <Button type="submit" disabled={loading} className="w-full gradient-primary glow-primary btn-press">
               {loading ? 'Signing in...' : 'Sign In'}
             </Button>
           </Magnet>
