@@ -59,7 +59,7 @@ export default function Home() {
   if (reels.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen pt-16 px-4 relative overflow-hidden">
-        <Particles count={35} color="hsl(260, 100%, 65%)" />
+        <Particles count={35} color="hsl(217, 91%, 60%)" />
         <FadeContent className="text-center max-w-md relative z-10">
           <div className="w-24 h-24 rounded-2xl gradient-primary glow-primary flex items-center justify-center mx-auto mb-6">
             <BlurText text="CR" className="text-4xl font-bold text-foreground" />
@@ -84,7 +84,7 @@ export default function Home() {
 
   return (
     <div className="relative">
-      <Particles count={25} color="hsl(260, 100%, 65%)" className="fixed" />
+      <Particles count={25} color="hsl(217, 91%, 60%)" className="fixed" />
       
       {/* Top filters */}
       <div className="fixed top-16 left-0 right-0 z-40 glass-strong border-b border-border">
@@ -107,7 +107,7 @@ export default function Home() {
         </div>
       </div>
 
-      <SplashCursor color="hsl(260, 100%, 65%)">
+      <SplashCursor color="hsl(217, 91%, 60%)">
         <div className="pt-[7.5rem] pb-20 md:pb-0 snap-y snap-mandatory h-[calc(100vh-7.5rem)] overflow-y-scroll scrollbar-hide">
           {reels.map(reel => (
             <ReelCard key={reel.id} reel={reel} uploaderProfile={profiles[reel.uploaded_by]} />

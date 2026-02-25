@@ -234,7 +234,7 @@ export default function ReelCard({ reel, uploaderProfile }: ReelCardProps) {
 
         {/* Right side actions */}
         <div className="absolute right-3 bottom-32 flex flex-col items-center gap-4 md:right-[calc(50%-14rem)]">
-          <ClickSpark color="hsl(260, 100%, 65%)">
+          <ClickSpark color="hsl(217, 91%, 60%)">
             <button onClick={handleLike} className="flex flex-col items-center gap-1 btn-press">
               <motion.div animate={heartAnim ? { scale: [1, 1.4, 1] } : {}} transition={{ duration: 0.3 }}>
                 <Heart className={`w-7 h-7 ${liked ? 'fill-destructive text-destructive' : 'text-foreground'}`} />

@@ -6,47 +6,47 @@
 
 @layer base {
   :root {
-    --background: 260 20% 4%;
-    --foreground: 0 0% 98%;
+    --background: 220 20% 4%;
+    --foreground: 210 20% 96%;
 
-    --card: 260 18% 7%;
-    --card-foreground: 0 0% 98%;
+    --card: 220 18% 7%;
+    --card-foreground: 210 20% 96%;
 
-    --popover: 260 18% 7%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 220 18% 7%;
+    --popover-foreground: 210 20% 96%;
 
-    --primary: 260 100% 65%;
+    --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 280 100% 70%;
+    --secondary: 199 89% 48%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 260 15% 12%;
-    --muted-foreground: 260 10% 60%;
+    --muted: 220 15% 12%;
+    --muted-foreground: 220 10% 55%;
 
-    --accent: 270 100% 68%;
+    --accent: 210 100% 62%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 351 100% 62%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --warning: 32 100% 50%;
-    --success: 145 63% 51%;
+    --warning: 38 92% 50%;
+    --success: 142 71% 45%;
 
-    --border: 260 30% 20%;
-    --input: 260 20% 15%;
-    --ring: 260 100% 65%;
+    --border: 220 20% 18%;
+    --input: 220 18% 14%;
+    --ring: 217 91% 60%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 260 20% 5%;
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 260 100% 65%;
+    --sidebar-background: 220 20% 5%;
+    --sidebar-foreground: 210 20% 96%;
+    --sidebar-primary: 217 91% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 260 15% 12%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 260 30% 18%;
-    --sidebar-ring: 260 100% 65%;
+    --sidebar-accent: 220 15% 12%;
+    --sidebar-accent-foreground: 210 20% 96%;
+    --sidebar-border: 220 20% 16%;
+    --sidebar-ring: 217 91% 60%;
   }
 }
 
@@ -67,42 +67,42 @@
 
 @layer utilities {
   .glass {
-    background: linear-gradient(135deg, hsl(260 18% 10% / 0.8), hsl(260 20% 6% / 0.9));
+    background: linear-gradient(135deg, hsl(220 18% 10% / 0.8), hsl(220 20% 6% / 0.9));
     backdrop-filter: blur(20px);
-    border: 1px solid hsl(260 30% 25% / 0.4);
+    border: 1px solid hsl(220 25% 22% / 0.4);
   }
 
   .glass-strong {
-    background: linear-gradient(135deg, hsl(260 20% 12% / 0.95), hsl(260 18% 8% / 0.95));
+    background: linear-gradient(135deg, hsl(220 20% 12% / 0.95), hsl(220 18% 8% / 0.95));
     backdrop-filter: blur(24px);
-    border: 1px solid hsl(260 40% 30% / 0.5);
+    border: 1px solid hsl(220 30% 25% / 0.5);
   }
 
   .gradient-primary {
-    background: linear-gradient(135deg, hsl(260 100% 65%), hsl(280 100% 70%), hsl(300 80% 60%));
+    background: linear-gradient(135deg, hsl(217 91% 60%), hsl(199 89% 48%), hsl(190 80% 50%));
   }
 
   .gradient-text {
-    background: linear-gradient(135deg, hsl(260 100% 72%), hsl(280 100% 75%), hsl(300 80% 65%));
+    background: linear-gradient(135deg, hsl(217 91% 68%), hsl(199 89% 56%), hsl(190 80% 55%));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
   .gradient-subtle {
-    background: linear-gradient(135deg, hsl(260 100% 65% / 0.1), hsl(280 100% 70% / 0.05));
+    background: linear-gradient(135deg, hsl(217 91% 60% / 0.1), hsl(199 89% 48% / 0.05));
   }
 
   .glow-primary {
-    box-shadow: 0 0 20px hsl(260 100% 65% / 0.3), 0 0 40px hsl(280 100% 70% / 0.15), 0 0 80px hsl(260 100% 65% / 0.05);
+    box-shadow: 0 0 20px hsl(217 91% 60% / 0.3), 0 0 40px hsl(199 89% 48% / 0.15), 0 0 80px hsl(217 91% 60% / 0.05);
   }
 
   .glow-secondary {
-    box-shadow: 0 0 20px hsl(280 100% 70% / 0.3), 0 0 40px hsl(300 80% 60% / 0.15);
+    box-shadow: 0 0 20px hsl(199 89% 48% / 0.3), 0 0 40px hsl(190 80% 50% / 0.15);
   }
 
   .glow-soft {
-    box-shadow: 0 4px 30px hsl(260 100% 65% / 0.15);
+    box-shadow: 0 4px 30px hsl(217 91% 60% / 0.15);
   }
 
   .animate-pulse-glow {
@@ -110,8 +110,8 @@
   }
 
   @keyframes pulseGlow {
-    0%, 100% { box-shadow: 0 0 5px hsl(260 100% 65% / 0.3); }
-    50% { box-shadow: 0 0 20px hsl(260 100% 65% / 0.5), 0 0 40px hsl(280 100% 70% / 0.2); }
+    0%, 100% { box-shadow: 0 0 5px hsl(217 91% 60% / 0.3); }
+    50% { box-shadow: 0 0 20px hsl(217 91% 60% / 0.5), 0 0 40px hsl(199 89% 48% / 0.2); }
   }
 
   @keyframes flame {
@@ -131,7 +131,7 @@
   }
 
   .animate-shimmer {
-    background: linear-gradient(90deg, hsl(260 15% 12%) 25%, hsl(260 20% 18%) 50%, hsl(260 15% 12%) 75%);
+    background: linear-gradient(90deg, hsl(220 15% 12%) 25%, hsl(220 20% 18%) 50%, hsl(220 15% 12%) 75%);
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
   }
