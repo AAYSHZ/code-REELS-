@@ -25,17 +25,13 @@ export default function Register() {
     setLoading(true);
     const { error } = await signUp(email, password, name);
     setLoading(false);
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success('Account created! You can now sign in.');
-      navigate('/');
-    }
+    if (error) toast.error(error.message);
+    else { toast.success('Account created! You can now sign in.'); navigate('/'); }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
-      <Aurora colorStops={['#6c63ff', '#00d4aa', '#0a0a0a']} speed={2} />
+      <Aurora colorStops={['hsl(260, 100%, 65%)', 'hsl(280, 100%, 70%)', 'hsl(260, 20%, 4%)']} speed={2} />
 
       <FadeContent className="w-full max-w-sm space-y-8 relative z-10">
         <div className="text-center">
@@ -64,7 +60,7 @@ export default function Register() {
             <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min 6 characters" className="bg-muted/30 border-border backdrop-blur-sm" />
           </div>
           <Magnet strength={0.2}>
-            <Button type="submit" disabled={loading} className="w-full gradient-primary glow-primary">
+            <Button type="submit" disabled={loading} className="w-full gradient-primary glow-primary btn-press">
               {loading ? 'Creating...' : 'Create Account'}
             </Button>
           </Magnet>

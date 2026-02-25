@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Trophy, Star, Heart, TrendingUp } from 'lucide-react';
+import { Trophy, Star, Heart, TrendingUp, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Lightning from '@/components/effects/Lightning';
 import SplitText from '@/components/effects/SplitText';
 import CountUp from '@/components/effects/CountUp';
 import FadeContent from '@/components/effects/FadeContent';
-import TiltedCard from '@/components/effects/TiltedCard';
+import { LeaderboardSkeleton } from '@/components/Skeleton';
 
 const TABS = [
   { value: 'creator', label: 'Top Creator', icon: Star, sort: 'creator_points' },
@@ -17,6 +17,12 @@ const TABS = [
 ];
 
 const SKILLS = ['All', 'DSA', 'Web Dev', 'AI-ML', 'Hardware'];
+
+const RANK_STYLES = [
+  'bg-gradient-to-r from-yellow-500/20 to-yellow-600/10 border-yellow-500/30 text-yellow-400',
+  'bg-gradient-to-r from-gray-400/20 to-gray-500/10 border-gray-400/30 text-gray-300',
+  'bg-gradient-to-r from-orange-600/20 to-orange-700/10 border-orange-600/30 text-orange-400',
+];
 
 export default function Leaderboard() {
   const [users, setUsers] = useState<any[]>([]);
@@ -28,11 +34,7 @@ export default function Leaderboard() {
     const sortCol = TABS.find(t => t.value === activeTab)?.sort || 'xp';
     const fetch = async () => {
       setLoading(true);
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .order(sortCol, { ascending: false })
-        .limit(10);
+      const { data } = await supabase.from('profiles').select('*').order(sortCol, { ascending: false }).limit(10);
       if (data) setUsers(data);
       setLoading(false);
     };
@@ -47,7 +49,7 @@ export default function Leaderboard() {
 
   return (
     <div className="min-h-screen pt-20 pb-24 px-4 max-w-2xl mx-auto relative">
-      <Lightning color="#6c63ff" className="fixed inset-0" />
+      <Lightning color="hsl(260, 100%, 65%)" className="fixed inset-0" />
 
       <FadeContent className="relative z-10">
         <div className="flex items-center justify-between mb-6">
@@ -62,7 +64,7 @@ export default function Leaderboard() {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid grid-cols-4 bg-muted/30 mb-4">
             {TABS.map(t => (
-              <TabsTrigger key={t.value} value={t.value} className="text-xs gap-1 data-[state=active]:gradient-primary">
+              <TabsTrigger key={t.value} value={t.value} className="text-xs gap-1 data-[state=active]:gradient-primary data-[state=active]:text-primary-foreground">
                 <t.icon className="w-3 h-3" />
                 <span className="hidden sm:inline">{t.label}</span>
               </TabsTrigger>
@@ -74,8 +76,8 @@ export default function Leaderboard() {
               <button
                 key={s}
                 onClick={() => setSkillFilter(s)}
-                className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
-                  skillFilter === s ? 'gradient-primary text-foreground' : 'glass text-muted-foreground'
+                className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all btn-press ${
+                  skillFilter === s ? 'gradient-primary text-primary-foreground' : 'glass text-muted-foreground'
                 }`}
               >
                 {s}
@@ -86,33 +88,29 @@ export default function Leaderboard() {
           {TABS.map(t => (
             <TabsContent key={t.value} value={t.value}>
               {loading ? (
-                <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>
+                <LeaderboardSkeleton />
               ) : (
                 <div className="space-y-2">
                   {users.map((u, i) => (
-                    <TiltedCard key={u.id} tiltAmount={5}>
-                      <Link to={`/profile/${u.user_id}`} className="flex items-center gap-3 glass rounded-xl p-3 hover:border-primary/30 transition-colors">
-                        <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                          i === 0 ? 'bg-warning/20 text-warning' :
-                          i === 1 ? 'bg-muted text-foreground' :
-                          i === 2 ? 'bg-orange-800/20 text-orange-400' :
-                          'bg-muted/30 text-muted-foreground'
-                        }`}>
-                          {i + 1}
-                        </span>
-                        <div className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center text-sm font-bold text-foreground">
-                          {u.name?.charAt(0)?.toUpperCase() || 'U'}
+                    <Link key={u.id} to={`/profile/${u.user_id}`} className={`flex items-center gap-3 glass rounded-xl p-3 hover:glow-soft transition-all block ${i < 3 ? 'border ' + RANK_STYLES[i] : ''}`}>
+                      <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${i < 3 ? RANK_STYLES[i] : 'bg-muted/30 text-muted-foreground'}`}>
+                        {i === 0 ? '👑' : i + 1}
+                      </span>
+                      <div className="w-10 h-10 rounded-full gradient-primary glow-soft flex items-center justify-center text-sm font-bold text-primary-foreground overflow-hidden">
+                        {u.avatar ? <img src={u.avatar} className="w-full h-full object-cover" /> : u.name?.charAt(0)?.toUpperCase() || 'U'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1">
+                          <p className="text-sm font-medium text-foreground truncate">{u.name}</p>
+                          {u.is_verified_creator && <Shield className="w-3 h-3 text-primary" />}
                         </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-foreground">{u.name}</p>
-                          <p className="text-[10px] font-mono text-primary">Lv.{u.level}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-bold text-secondary"><CountUp end={u[t.sort] || 0} duration={1.5} /></p>
-                          <p className="text-[10px] text-muted-foreground">pts</p>
-                        </div>
-                      </Link>
-                    </TiltedCard>
+                        <p className="text-[10px] font-mono text-primary">Lv.{u.level}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold gradient-text"><CountUp end={u[t.sort] || 0} duration={1.5} /></p>
+                        <p className="text-[10px] text-muted-foreground">pts</p>
+                      </div>
+                    </Link>
                   ))}
                 </div>
               )}

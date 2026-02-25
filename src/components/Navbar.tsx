@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Search, PlusCircle, Trophy, Zap, Bell, User, LogOut } from 'lucide-react';
+import { Home, Search, PlusCircle, Trophy, Zap, User, LogOut, Settings } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import UploadModal from './UploadModal';
@@ -32,7 +32,7 @@ export default function Navbar() {
       active: isActive(n.path),
     })),
     {
-      icon: <PlusCircle className="w-5 h-5" />,
+      icon: <PlusCircle className="w-6 h-6" />,
       label: 'Upload',
       onClick: () => setUploadOpen(true),
       active: false,
@@ -47,11 +47,11 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-border">
+      <nav className="fixed top-0 left-0 right-0 z-50 glass-strong border-b border-border">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
-              <span className="text-foreground font-bold text-sm">CR</span>
+            <div className="w-8 h-8 rounded-lg gradient-primary glow-soft flex items-center justify-center">
+              <span className="text-primary-foreground font-bold text-sm">CR</span>
             </div>
             <BlurText text="CodeReels" className="font-bold text-lg gradient-text hidden sm:block" />
           </Link>
@@ -63,7 +63,7 @@ export default function Navbar() {
                 <Button
                   variant={isActive(path) ? 'default' : 'ghost'}
                   size="sm"
-                  className={`gap-2 transition-all ${isActive(path) ? 'gradient-primary glow-primary' : ''}`}
+                  className={`gap-2 transition-all btn-press ${isActive(path) ? 'gradient-primary glow-soft' : 'hover:bg-muted/50'}`}
                 >
                   <Icon className="w-4 h-4" />
                   <span className="hidden lg:inline">{label}</span>
@@ -74,7 +74,7 @@ export default function Navbar() {
             <Magnet strength={0.2}>
               <Button
                 onClick={() => setUploadOpen(true)}
-                className="gradient-primary gap-2 glow-primary"
+                className="gradient-primary gap-2 glow-soft btn-press"
                 size="sm"
               >
                 <PlusCircle className="w-4 h-4" />
@@ -86,11 +86,15 @@ export default function Navbar() {
           <div className="flex items-center gap-2">
             {user && <NotificationDropdown />}
             {user ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 <Link to={`/profile/${user.id}`}>
-                  <div className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-muted transition-colors">
-                    <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center text-xs font-bold text-foreground">
-                      {profile?.name?.charAt(0)?.toUpperCase() || 'U'}
+                  <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-muted/30 transition-colors">
+                    <div className="w-8 h-8 rounded-full gradient-primary glow-soft flex items-center justify-center text-xs font-bold text-primary-foreground overflow-hidden">
+                      {profile?.avatar ? (
+                        <img src={profile.avatar} className="w-full h-full object-cover" />
+                      ) : (
+                        profile?.name?.charAt(0)?.toUpperCase() || 'U'
+                      )}
                     </div>
                     <div className="hidden lg:block">
                       <p className="text-xs font-medium text-foreground">{profile?.name || 'User'}</p>
@@ -98,14 +102,19 @@ export default function Navbar() {
                     </div>
                   </div>
                 </Link>
-                <Button variant="ghost" size="icon" onClick={signOut} className="text-muted-foreground hover:text-destructive">
+                <Link to="/settings">
+                  <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground w-8 h-8">
+                    <Settings className="w-4 h-4" />
+                  </Button>
+                </Link>
+                <Button variant="ghost" size="icon" onClick={signOut} className="text-muted-foreground hover:text-destructive w-8 h-8">
                   <LogOut className="w-4 h-4" />
                 </Button>
               </div>
             ) : (
               <div className="flex gap-2">
-                <Link to="/login"><Button variant="ghost" size="sm">Login</Button></Link>
-                <Link to="/register"><Button size="sm" className="gradient-primary">Register</Button></Link>
+                <Link to="/login"><Button variant="ghost" size="sm" className="btn-press">Login</Button></Link>
+                <Link to="/register"><Button size="sm" className="gradient-primary glow-soft btn-press">Register</Button></Link>
               </div>
             )}
           </div>
