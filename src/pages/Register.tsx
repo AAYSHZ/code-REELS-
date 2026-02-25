@@ -31,7 +31,7 @@ export default function Register() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
-      <Aurora colorStops={['hsl(260, 100%, 65%)', 'hsl(280, 100%, 70%)', 'hsl(260, 20%, 4%)']} speed={2} />
+      <Aurora colorStops={['hsl(217, 91%, 60%)', 'hsl(199, 89%, 48%)', 'hsl(220, 20%, 4%)']} speed={2} />
 
       <FadeContent className="w-full max-w-sm space-y-8 relative z-10">
         <div className="text-center">

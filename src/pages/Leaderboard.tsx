@@ -49,7 +49,7 @@ export default function Leaderboard() {
 
   return (
     <div className="min-h-screen pt-20 pb-24 px-4 max-w-2xl mx-auto relative">
-      <Lightning color="hsl(260, 100%, 65%)" className="fixed inset-0" />
+      <Lightning color="hsl(217, 91%, 60%)" className="fixed inset-0" />
 
       <FadeContent className="relative z-10">
         <div className="flex items-center justify-between mb-6">

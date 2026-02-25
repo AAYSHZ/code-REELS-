@@ -4,7 +4,7 @@ interface BlobCursorProps {
   color?: string;
 }
 
-export default function BlobCursor({ color = '#6c63ff' }: BlobCursorProps) {
+export default function BlobCursor({ color = 'hsl(217, 91%, 60%)' }: BlobCursorProps) {
   const blobRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

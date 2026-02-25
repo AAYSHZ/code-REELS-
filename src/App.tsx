@@ -27,7 +27,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <div className="dark">
-            <BlobCursor color="hsl(260, 100%, 65%)" />
+            <BlobCursor color="hsl(217, 91%, 60%)" />
             <Navbar />
             <Routes>
               <Route path="/" element={<Home />} />
