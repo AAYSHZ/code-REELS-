@@ -15,7 +15,6 @@ import Rewards from "@/pages/Rewards";
 import SearchPage from "@/pages/Search";
 import ReelDetail from "@/pages/ReelDetail";
 import Admin from "@/pages/Admin";
-import Settings from "@/pages/Settings";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,7 +26,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <div className="dark">
-            <BlobCursor color="hsl(217, 91%, 60%)" />
+            <BlobCursor color="#6c63ff" />
             <Navbar />
             <Routes>
               <Route path="/" element={<Home />} />
@@ -40,7 +39,6 @@ const App = () => (
               <Route path="/search" element={<SearchPage />} />
               <Route path="/reel/:reelId" element={<ReelDetail />} />
               <Route path="/admin" element={<Admin />} />
-              <Route path="/settings" element={<Settings />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>

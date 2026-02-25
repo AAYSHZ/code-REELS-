@@ -8,9 +8,9 @@ import { getCategoryColor } from '@/utils/pointsEngine';
 import Beams from '@/components/effects/Beams';
 import SplitText from '@/components/effects/SplitText';
 import FadeContent from '@/components/effects/FadeContent';
+import TiltedCard from '@/components/effects/TiltedCard';
 import Magnet from '@/components/effects/Magnet';
 import ShinyText from '@/components/effects/ShinyText';
-import { CardSkeleton } from '@/components/Skeleton';
 
 export default function Challenges() {
   const { user } = useAuth();
@@ -46,9 +46,11 @@ export default function Challenges() {
     return `${days}d ${hours}h left`;
   };
 
+  if (loading) return <div className="flex items-center justify-center min-h-screen pt-16"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>;
+
   return (
     <div className="min-h-screen pt-20 pb-24 px-4 max-w-2xl mx-auto relative">
-      <Beams color="hsl(280, 100%, 70%)" className="fixed inset-0" />
+      <Beams color="#00d4aa" className="fixed inset-0" />
 
       <FadeContent className="relative z-10">
         <h1 className="text-2xl font-bold mb-2">
@@ -56,51 +58,50 @@ export default function Challenges() {
         </h1>
         <p className="text-sm text-muted-foreground mb-6">Complete challenges for bonus XP and exclusive badges</p>
 
-        <div className="glass rounded-xl p-4 mb-6 border-primary/20 gradient-subtle">
+        {/* Multiplier banner */}
+        <div className="glass rounded-xl p-4 mb-6 border-secondary/30 bg-secondary/5">
           <div className="flex items-center gap-2">
-            <Zap className="w-5 h-5 text-primary animate-pulse" />
+            <Zap className="w-5 h-5 text-secondary animate-pulse" />
             <ShinyText text="1.5x Point Multiplier Active During Challenges!" className="text-sm font-semibold" />
           </div>
         </div>
 
-        {loading ? (
-          <div className="space-y-4">{[...Array(3)].map((_, i) => <CardSkeleton key={i} />)}</div>
-        ) : challenges.length === 0 ? (
-          <div className="glass rounded-xl p-8 text-center">
-            <p className="text-muted-foreground">No active challenges yet. Check back soon! 🎯</p>
-          </div>
+        {challenges.length === 0 ? (
+          <p className="text-center text-muted-foreground py-8">No active challenges yet. Check back soon!</p>
         ) : (
           <div className="space-y-4">
             {challenges.map(c => {
               const isEnded = new Date(c.end_date).getTime() < Date.now();
               return (
-                <div key={c.id} className="glass rounded-xl p-5 hover:glow-soft transition-all">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h3 className="font-semibold text-foreground">{c.title}</h3>
-                      <p className="text-xs text-muted-foreground mt-1">{c.description}</p>
+                <TiltedCard key={c.id} tiltAmount={5}>
+                  <div className="glass rounded-xl p-5 hover:border-primary/20 transition-colors">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h3 className="font-semibold text-foreground">{c.title}</h3>
+                        <p className="text-xs text-muted-foreground mt-1">{c.description}</p>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono border ${getCategoryColor(c.category)}`}>
+                        {c.category}
+                      </span>
                     </div>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono border ${getCategoryColor(c.category)}`}>
-                      {c.category}
-                    </span>
-                  </div>
 
-                  <div className="flex items-center gap-4 mb-3 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {getCountdown(c.end_date)}</span>
-                    <span className="flex items-center gap-1"><Trophy className="w-3 h-3 text-warning" /> {c.badge_name}</span>
-                    <span className="flex items-center gap-1"><Zap className="w-3 h-3 text-primary" /> {c.point_multiplier}x</span>
-                  </div>
+                    <div className="flex items-center gap-4 mb-3 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {getCountdown(c.end_date)}</span>
+                      <span className="flex items-center gap-1"><Trophy className="w-3 h-3 text-warning" /> {c.badge_name}</span>
+                      <span className="flex items-center gap-1"><Zap className="w-3 h-3 text-secondary" /> {c.point_multiplier}x</span>
+                    </div>
 
-                  {isEnded ? (
-                    <span className="text-xs text-muted-foreground">Challenge ended</span>
-                  ) : joined.has(c.id) ? (
-                    <ShinyText text="✓ Joined" className="text-xs font-medium" />
-                  ) : (
-                    <Magnet strength={0.2}>
-                      <Button size="sm" onClick={() => handleJoin(c.id)} className="gradient-primary glow-soft btn-press">Join Challenge</Button>
-                    </Magnet>
-                  )}
-                </div>
+                    {isEnded ? (
+                      <span className="text-xs text-muted-foreground">Challenge ended</span>
+                    ) : joined.has(c.id) ? (
+                      <ShinyText text="✓ Joined" className="text-xs font-medium" />
+                    ) : (
+                      <Magnet strength={0.2}>
+                        <Button size="sm" onClick={() => handleJoin(c.id)} className="gradient-primary glow-primary">Join Challenge</Button>
+                      </Magnet>
+                    )}
+                  </div>
+                </TiltedCard>
               );
             })}
           </div>

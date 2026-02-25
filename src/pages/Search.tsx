@@ -2,28 +2,24 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search as SearchIcon, TrendingUp } from 'lucide-react';
+import { Search as SearchIcon } from 'lucide-react';
 import { getDifficultyBg, getCategoryColor } from '@/utils/pointsEngine';
-import { timeAgo } from '@/utils/timeAgo';
 import { Link } from 'react-router-dom';
 import FadeContent from '@/components/effects/FadeContent';
 import SplitText from '@/components/effects/SplitText';
+import TiltedCard from '@/components/effects/TiltedCard';
 import Magnet from '@/components/effects/Magnet';
-import { CardSkeleton } from '@/components/Skeleton';
 
 export default function SearchPage() {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('all');
   const [difficulty, setDifficulty] = useState('all');
-  const [sortBy, setSortBy] = useState('reach_score');
   const [results, setResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
-  const [searched, setSearched] = useState(false);
 
   const handleSearch = async () => {
     setSearching(true);
-    setSearched(true);
-    let q = supabase.from('reels').select('*').order(sortBy, { ascending: false }).limit(20);
+    let q = supabase.from('reels').select('*').order('reach_score', { ascending: false }).limit(20);
     if (query) q = q.ilike('title', `%${query}%`);
     if (category !== 'all') q = q.eq('category', category);
     if (difficulty !== 'all') q = q.eq('difficulty', difficulty);
@@ -51,9 +47,11 @@ export default function SearchPage() {
         </div>
       </div>
 
-      <div className="flex gap-2 mb-6 flex-wrap">
+      <div className="flex gap-2 mb-6">
         <Select value={category} onValueChange={v => setCategory(v)}>
-          <SelectTrigger className="w-32 bg-muted/30 border-border text-xs"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-32 bg-muted/30 border-border text-xs">
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Categories</SelectItem>
             <SelectItem value="DSA">DSA</SelectItem>
@@ -63,7 +61,9 @@ export default function SearchPage() {
           </SelectContent>
         </Select>
         <Select value={difficulty} onValueChange={v => setDifficulty(v)}>
-          <SelectTrigger className="w-28 bg-muted/30 border-border text-xs"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-28 bg-muted/30 border-border text-xs">
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Levels</SelectItem>
             <SelectItem value="Easy">Easy</SelectItem>
@@ -71,56 +71,40 @@ export default function SearchPage() {
             <SelectItem value="Hard">Hard</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={sortBy} onValueChange={v => setSortBy(v)}>
-          <SelectTrigger className="w-28 bg-muted/30 border-border text-xs"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="reach_score">Trending</SelectItem>
-            <SelectItem value="created_at">Newest</SelectItem>
-            <SelectItem value="likes_count">Most Liked</SelectItem>
-          </SelectContent>
-        </Select>
         <Magnet strength={0.15}>
-          <button onClick={handleSearch} className="gradient-primary px-4 rounded-lg text-sm font-medium text-primary-foreground glow-soft btn-press">
+          <button onClick={handleSearch} className="gradient-primary px-4 rounded-lg text-sm font-medium text-foreground glow-primary">
             Search
           </button>
         </Magnet>
       </div>
 
       {searching ? (
-        <div className="space-y-3">{[...Array(3)].map((_, i) => <CardSkeleton key={i} />)}</div>
+        <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>
       ) : (
         <div className="space-y-3">
           {results.map(r => (
-            <Link key={r.id} to={`/reel/${r.id}`} className="glass rounded-xl p-4 flex gap-4 hover:glow-soft transition-all block">
-              <div className="w-20 h-28 rounded-lg bg-muted/30 flex-shrink-0 overflow-hidden">
-                <video src={r.video_url} className="w-full h-full object-cover" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-semibold text-foreground truncate">{r.title}</h3>
-                <div className="flex gap-2 mt-2">
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono border ${getCategoryColor(r.category)}`}>{r.category}</span>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono border ${getDifficultyBg(r.difficulty)}`}>{r.difficulty}</span>
+            <TiltedCard key={r.id} tiltAmount={4}>
+              <Link to={`/reel/${r.id}`} className="glass rounded-xl p-4 flex gap-4 hover:border-primary/20 transition-colors block">
+                <div className="w-20 h-28 rounded-lg bg-muted/30 flex-shrink-0 overflow-hidden">
+                  <video src={r.video_url} className="w-full h-full object-cover" />
                 </div>
-                <div className="flex gap-3 mt-2 text-[10px] text-muted-foreground">
-                  <span>❤️ {r.likes_count}</span>
-                  <span>👁 {r.total_views}</span>
-                  <span>{timeAgo(r.created_at)}</span>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-semibold text-foreground truncate">{r.title}</h3>
+                  <div className="flex gap-2 mt-2">
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono border ${getCategoryColor(r.category)}`}>{r.category}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono border ${getDifficultyBg(r.difficulty)}`}>{r.difficulty}</span>
+                  </div>
+                  <div className="flex gap-3 mt-2 text-[10px] text-muted-foreground">
+                    <span>❤️ {r.likes_count}</span>
+                    <span>👁 {r.total_views}</span>
+                    <span>🔗 {r.shares_count}</span>
+                  </div>
                 </div>
-              </div>
-            </Link>
+              </Link>
+            </TiltedCard>
           ))}
-          {results.length === 0 && searched && (
-            <div className="glass rounded-xl p-8 text-center">
-              <p className="text-muted-foreground text-sm mb-2">No results found</p>
-              <p className="text-[10px] text-muted-foreground">Try different keywords or be the first to upload this topic! 🎬</p>
-            </div>
-          )}
-          {!searched && (
-            <div className="glass rounded-xl p-8 text-center">
-              <TrendingUp className="w-8 h-8 text-primary mx-auto mb-3 animate-float" />
-              <p className="text-foreground text-sm font-medium">Search for reels or browse trending</p>
-              <p className="text-[10px] text-muted-foreground mt-1">Discover coding content across all categories</p>
-            </div>
+          {results.length === 0 && !searching && (
+            <p className="text-center text-muted-foreground py-8 text-sm">Search for reels or browse trending content</p>
           )}
         </div>
       )}

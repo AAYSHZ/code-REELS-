@@ -85,45 +85,11 @@ export type Database = {
         }
         Relationships: []
       }
-      comment_reactions: {
-        Row: {
-          comment_id: string
-          created_at: string
-          id: string
-          reaction: string
-          user_id: string
-        }
-        Insert: {
-          comment_id: string
-          created_at?: string
-          id?: string
-          reaction: string
-          user_id: string
-        }
-        Update: {
-          comment_id?: string
-          created_at?: string
-          id?: string
-          reaction?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "comment_reactions_comment_id_fkey"
-            columns: ["comment_id"]
-            isOneToOne: false
-            referencedRelation: "comments"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       comments: {
         Row: {
           created_at: string
           downvotes: number
           id: string
-          is_pinned: boolean | null
-          parent_comment_id: string | null
           reel_id: string
           text: string
           upvotes: number
@@ -133,8 +99,6 @@ export type Database = {
           created_at?: string
           downvotes?: number
           id?: string
-          is_pinned?: boolean | null
-          parent_comment_id?: string | null
           reel_id: string
           text: string
           upvotes?: number
@@ -144,21 +108,12 @@ export type Database = {
           created_at?: string
           downvotes?: number
           id?: string
-          is_pinned?: boolean | null
-          parent_comment_id?: string | null
           reel_id?: string
           text?: string
           upvotes?: number
           user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "comments_parent_comment_id_fkey"
-            columns: ["parent_comment_id"]
-            isOneToOne: false
-            referencedRelation: "comments"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "comments_reel_id_fkey"
             columns: ["reel_id"]
@@ -167,27 +122,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      follows: {
-        Row: {
-          created_at: string
-          follower_id: string
-          following_id: string
-          id: string
-        }
-        Insert: {
-          created_at?: string
-          follower_id: string
-          following_id: string
-          id?: string
-        }
-        Update: {
-          created_at?: string
-          follower_id?: string
-          following_id?: string
-          id?: string
-        }
-        Relationships: []
       }
       notifications: {
         Row: {
@@ -231,34 +165,22 @@ export type Database = {
         Row: {
           avatar: string | null
           badges: string[] | null
-          bio: string | null
           coins: number
-          cover_photo: string | null
           created_at: string
           creator_points: number
           current_badge: string | null
           email: string
-          followers_count: number | null
-          following_count: number | null
-          github_url: string | null
           helper_points: number
           id: string
           is_elite_creator: boolean
-          is_private: boolean | null
           is_verified_creator: boolean
           knowledge_points: number
           last_upload_date: string | null
           level: number
-          linkedin_url: string | null
           name: string
-          open_to_collab: boolean | null
-          pinned_reel_id: string | null
-          portfolio_url: string | null
           reputation_score: number
           skill_points: Json
-          skill_tags: string[] | null
           streak_count: number
-          total_watch_hours: number | null
           updated_at: string
           user_id: string
           weekly_fpa: number
@@ -267,34 +189,22 @@ export type Database = {
         Insert: {
           avatar?: string | null
           badges?: string[] | null
-          bio?: string | null
           coins?: number
-          cover_photo?: string | null
           created_at?: string
           creator_points?: number
           current_badge?: string | null
           email?: string
-          followers_count?: number | null
-          following_count?: number | null
-          github_url?: string | null
           helper_points?: number
           id?: string
           is_elite_creator?: boolean
-          is_private?: boolean | null
           is_verified_creator?: boolean
           knowledge_points?: number
           last_upload_date?: string | null
           level?: number
-          linkedin_url?: string | null
           name?: string
-          open_to_collab?: boolean | null
-          pinned_reel_id?: string | null
-          portfolio_url?: string | null
           reputation_score?: number
           skill_points?: Json
-          skill_tags?: string[] | null
           streak_count?: number
-          total_watch_hours?: number | null
           updated_at?: string
           user_id: string
           weekly_fpa?: number
@@ -303,48 +213,28 @@ export type Database = {
         Update: {
           avatar?: string | null
           badges?: string[] | null
-          bio?: string | null
           coins?: number
-          cover_photo?: string | null
           created_at?: string
           creator_points?: number
           current_badge?: string | null
           email?: string
-          followers_count?: number | null
-          following_count?: number | null
-          github_url?: string | null
           helper_points?: number
           id?: string
           is_elite_creator?: boolean
-          is_private?: boolean | null
           is_verified_creator?: boolean
           knowledge_points?: number
           last_upload_date?: string | null
           level?: number
-          linkedin_url?: string | null
           name?: string
-          open_to_collab?: boolean | null
-          pinned_reel_id?: string | null
-          portfolio_url?: string | null
           reputation_score?: number
           skill_points?: Json
-          skill_tags?: string[] | null
           streak_count?: number
-          total_watch_hours?: number | null
           updated_at?: string
           user_id?: string
           weekly_fpa?: number
           xp?: number
         }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_pinned_reel_id_fkey"
-            columns: ["pinned_reel_id"]
-            isOneToOne: false
-            referencedRelation: "reels"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       reel_likes: {
         Row: {
