@@ -261,6 +261,7 @@ export type Database = {
           total_watch_hours: number | null
           updated_at: string
           user_id: string
+          username: string | null
           weekly_fpa: number
           xp: number
         }
@@ -297,6 +298,7 @@ export type Database = {
           total_watch_hours?: number | null
           updated_at?: string
           user_id: string
+          username?: string | null
           weekly_fpa?: number
           xp?: number
         }
@@ -333,6 +335,7 @@ export type Database = {
           total_watch_hours?: number | null
           updated_at?: string
           user_id?: string
+          username?: string | null
           weekly_fpa?: number
           xp?: number
         }

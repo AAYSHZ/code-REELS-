@@ -8,6 +8,7 @@ import NotificationDropdown from './NotificationDropdown';
 import BlurText from './effects/BlurText';
 import Dock from './effects/Dock';
 import Magnet from './effects/Magnet';
+import codereelsLogo from '@/assets/codereels-logo.png';
 
 export default function Navbar() {
   const { user, profile, signOut } = useAuth();
@@ -50,9 +51,7 @@ export default function Navbar() {
       <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-border">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
-              <span className="text-foreground font-bold text-sm">CR</span>
-            </div>
+            <img src={codereelsLogo} alt="CodeReels" className="h-8 w-auto" />
             <BlurText text="CodeReels" className="font-bold text-lg gradient-text hidden sm:block" />
           </Link>
 

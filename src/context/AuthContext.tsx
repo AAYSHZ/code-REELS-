@@ -8,6 +8,7 @@ interface Profile {
   name: string;
   email: string;
   avatar: string | null;
+  username: string | null;
   xp: number;
   coins: number;
   reputation_score: number;
