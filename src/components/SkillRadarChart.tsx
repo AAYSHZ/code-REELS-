@@ -1,15 +1,18 @@
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
 
 interface SkillRadarChartProps {
-  skillPoints: { dsa: number; webdev: number; aiml: number; hardware: number };
+  skillPoints: Record<string, number>;
 }
 
 export default function SkillRadarChart({ skillPoints }: SkillRadarChartProps) {
   const data = [
-    { subject: 'DSA', value: skillPoints.dsa, fullMark: 1000 },
-    { subject: 'Web Dev', value: skillPoints.webdev, fullMark: 1000 },
-    { subject: 'AI-ML', value: skillPoints.aiml, fullMark: 1000 },
-    { subject: 'Hardware', value: skillPoints.hardware, fullMark: 1000 },
+    { subject: 'DSA', value: skillPoints.dsa || 0, fullMark: 1000 },
+    { subject: 'Web Dev', value: skillPoints.webdev || 0, fullMark: 1000 },
+    { subject: 'AI/ML', value: skillPoints.aiml || 0, fullMark: 1000 },
+    { subject: 'Hardware', value: skillPoints.hardware || 0, fullMark: 1000 },
+    { subject: 'Coding', value: skillPoints.coding_problems || 0, fullMark: 1000 },
+    { subject: 'Roadmaps', value: skillPoints.learning_roadmaps || 0, fullMark: 1000 },
+    { subject: 'Debugging', value: skillPoints.troubleshooting || 0, fullMark: 1000 },
   ];
 
   return (

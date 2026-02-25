@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Heart, Share2, Bookmark, MessageCircle, Reply, CheckCircle } from 'lucide-react';
+import { Heart, Share2, Bookmark, MessageCircle, Reply, CheckCircle, Repeat2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { getDifficultyBg, getCategoryColor, calculateWatchPoints } from '@/utils/pointsEngine';
 import PointsToast from './PointsToast';
+import { toast } from 'sonner';
 import CommentSection from './CommentSection';
 import UploadModal from './UploadModal';
 import { Link } from 'react-router-dom';
@@ -119,6 +120,20 @@ export default function ReelCard({ reel, uploaderProfile }: ReelCardProps) {
     setPointsToast({ show: true, points: 4 });
   };
 
+  const handleRepost = async () => {
+    const url = `${window.location.origin}/reel/${reel.id}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: reel.title, text: `Check out this reel on CodeReels: ${reel.title}`, url });
+      } catch {}
+    } else {
+      navigator.clipboard.writeText(url);
+      toast('Link copied to clipboard!');
+    }
+    await supabase.from('reels').update({ shares_count: reel.shares_count + 1 }).eq('id', reel.id);
+    setPointsToast({ show: true, points: 4 });
+  };
+
   // Difficulty label component
   const DifficultyLabel = () => {
     if (reel.difficulty === 'Hard') {
@@ -192,6 +207,11 @@ export default function ReelCard({ reel, uploaderProfile }: ReelCardProps) {
           <button onClick={() => setShowComments(true)} className="flex flex-col items-center gap-1">
             <MessageCircle className="w-7 h-7 text-foreground" />
             <span className="text-xs text-foreground font-medium">Chat</span>
+          </button>
+
+          <button onClick={handleRepost} className="flex flex-col items-center gap-1">
+            <Repeat2 className="w-7 h-7 text-foreground" />
+            <span className="text-xs text-foreground font-medium">Repost</span>
           </button>
 
           <button onClick={handleShare} className="flex flex-col items-center gap-1">
