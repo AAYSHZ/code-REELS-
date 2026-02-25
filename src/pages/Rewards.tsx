@@ -2,6 +2,10 @@ import { useAuth } from '@/context/AuthContext';
 import { Progress } from '@/components/ui/progress';
 import { Coins, Gift, Rocket, GraduationCap, Briefcase, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import FadeContent from '@/components/effects/FadeContent';
+import SplitText from '@/components/effects/SplitText';
+import SpotlightCard from '@/components/effects/SpotlightCard';
+import CountUp from '@/components/effects/CountUp';
 
 const MILESTONES = [
   { target: 1000, label: '1K', reward: 'Custom Profile Frame' },
@@ -28,8 +32,10 @@ export default function Rewards() {
   const coins = profile?.coins || 0;
 
   return (
-    <div className="min-h-screen pt-20 pb-24 px-4 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold gradient-text mb-2">Rewards</h1>
+    <FadeContent className="min-h-screen pt-20 pb-24 px-4 max-w-2xl mx-auto">
+      <h1 className="text-2xl font-bold mb-2">
+        <SplitText text="Rewards" className="gradient-text" />
+      </h1>
       <p className="text-sm text-muted-foreground mb-6">Earn milestones and spend coins</p>
 
       {/* Coin Balance */}
@@ -38,28 +44,32 @@ export default function Rewards() {
           <Coins className="w-5 h-5 text-warning" />
           <span className="font-semibold text-foreground">Coin Balance</span>
         </div>
-        <span className="text-xl font-bold text-warning">{coins}</span>
+        <span className="text-xl font-bold text-warning"><CountUp end={coins} duration={2} /></span>
       </div>
 
-      {/* Milestones */}
+      {/* Milestones with SpotlightCard */}
       <h2 className="text-sm font-semibold text-foreground mb-3">Milestones</h2>
       <div className="space-y-3 mb-8">
         {MILESTONES.map(m => {
           const unlocked = xp >= m.target;
           const progress = Math.min((xp / m.target) * 100, 100);
           return (
-            <div key={m.target} className={`glass rounded-xl p-4 ${unlocked ? 'border-secondary/30' : 'opacity-70'}`}>
+            <SpotlightCard
+              key={m.target}
+              className={`glass rounded-xl p-4 ${unlocked ? 'border-secondary/30' : 'opacity-70'}`}
+              spotlightColor={unlocked ? 'rgba(0, 212, 170, 0.15)' : 'rgba(108, 99, 255, 0.1)'}
+            >
               <div className="flex justify-between items-center mb-2">
-                <div>
-                  <span className={`text-sm font-semibold ${unlocked ? 'text-secondary' : 'text-foreground'}`}>
-                    {m.label} XP — {m.reward}
-                  </span>
-                </div>
+                <span className={`text-sm font-semibold ${unlocked ? 'text-secondary' : 'text-foreground'}`}>
+                  {m.label} XP — {m.reward}
+                </span>
                 {unlocked && <span className="text-xs text-secondary font-medium">✓ Unlocked</span>}
               </div>
               <Progress value={progress} className="h-2" />
-              <p className="text-[10px] text-muted-foreground mt-1">{xp.toLocaleString()} / {m.target.toLocaleString()}</p>
-            </div>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                <CountUp end={xp} duration={1.5} /> / {m.target.toLocaleString()}
+              </p>
+            </SpotlightCard>
           );
         })}
       </div>
@@ -68,7 +78,7 @@ export default function Rewards() {
       <h2 className="text-sm font-semibold text-foreground mb-3">Spend Coins</h2>
       <div className="grid gap-3 mb-8">
         {COIN_OPTIONS.map(o => (
-          <div key={o.label} className="glass rounded-xl p-4 flex items-center justify-between">
+          <SpotlightCard key={o.label} className="glass rounded-xl p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <o.icon className="w-5 h-5 text-primary" />
               <div>
@@ -79,7 +89,7 @@ export default function Rewards() {
             <Button size="sm" variant="outline" disabled={coins < o.cost} className="text-xs">
               {o.cost} <Coins className="w-3 h-3 ml-1 text-warning" />
             </Button>
-          </div>
+          </SpotlightCard>
         ))}
       </div>
 
@@ -93,6 +103,6 @@ export default function Rewards() {
           </div>
         ))}
       </div>
-    </div>
+    </FadeContent>
   );
 }

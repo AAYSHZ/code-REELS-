@@ -1,16 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/context/AuthContext';
 import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import { Flame, Coins, Star, Award, Shield, Crown } from 'lucide-react';
+import { Flame, Coins, Star, Shield, Crown } from 'lucide-react';
 import SkillRadarChart from '@/components/SkillRadarChart';
 import { calculateLevel, xpForLevel } from '@/utils/pointsEngine';
+import FadeContent from '@/components/effects/FadeContent';
+import DecryptedText from '@/components/effects/DecryptedText';
+import CircularText from '@/components/effects/CircularText';
+import GradientText from '@/components/effects/GradientText';
+import CountUp from '@/components/effects/CountUp';
 
 export default function Profile() {
   const { userId } = useParams();
-  const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [reels, setReels] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,25 +32,31 @@ export default function Profile() {
   if (!profile) return <div className="flex items-center justify-center min-h-screen pt-16 text-muted-foreground">Profile not found</div>;
 
   const nextLevelXp = xpForLevel(profile.level + 1);
-  const xpProgress = (profile.xp / nextLevelXp) * 100;
+  const xpProgress = Math.min((profile.xp / nextLevelXp) * 100, 100);
   const totalScore = profile.xp + profile.reputation_score + profile.coins;
+  const badgeText = `${(profile.current_badge || 'NEWCOMER').toUpperCase()} • LEVEL ${profile.level} • `;
 
   return (
-    <div className="min-h-screen pt-20 pb-24 px-4 max-w-2xl mx-auto">
-      {/* Header */}
+    <FadeContent className="min-h-screen pt-20 pb-24 px-4 max-w-2xl mx-auto">
+      {/* Header with CircularText around avatar */}
       <div className="flex items-center gap-4 mb-6">
-        <div className="w-20 h-20 rounded-full gradient-primary glow-primary flex items-center justify-center text-2xl font-bold text-foreground">
-          {profile.name?.charAt(0)?.toUpperCase() || 'U'}
+        <div className="relative w-24 h-24 flex-shrink-0">
+          <CircularText text={badgeText} radius={48} />
+          <div className="absolute inset-3 rounded-full gradient-primary glow-primary flex items-center justify-center text-2xl font-bold text-foreground">
+            {profile.name?.charAt(0)?.toUpperCase() || 'U'}
+          </div>
         </div>
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-foreground">{profile.name}</h1>
+            <h1 className="text-xl font-bold text-foreground">
+              <DecryptedText text={profile.name || 'User'} speed={40} />
+            </h1>
             {profile.is_verified_creator && <Shield className="w-4 h-4 text-primary" />}
             {profile.is_elite_creator && <Crown className="w-4 h-4 text-warning" />}
           </div>
           <div className="flex items-center gap-2 mt-1">
-            <span className="px-2 py-0.5 rounded-full text-xs font-mono gradient-primary text-foreground">Lv.{profile.level}</span>
-            <span className="text-xs text-muted-foreground">{profile.current_badge}</span>
+            <span className="px-2 py-0.5 rounded-full text-xs font-mono gradient-primary text-foreground">Lv.<CountUp end={profile.level} duration={1} /></span>
+            <GradientText text={profile.current_badge || 'Newcomer'} className="text-xs font-semibold" />
           </div>
         </div>
       </div>
@@ -56,29 +64,29 @@ export default function Profile() {
       {/* XP Bar */}
       <div className="glass rounded-xl p-4 mb-4">
         <div className="flex justify-between text-xs mb-2">
-          <span className="text-muted-foreground">XP: {profile.xp}</span>
-          <span className="text-muted-foreground">Next: {nextLevelXp}</span>
+          <span className="text-muted-foreground">XP: <CountUp end={profile.xp} duration={1.5} /></span>
+          <span className="text-muted-foreground">Next: {nextLevelXp.toLocaleString()}</span>
         </div>
         <div className="relative">
           <Progress value={xpProgress} className="h-3 animate-pulse-glow" />
         </div>
       </div>
 
-      {/* Stats Grid */}
+      {/* Stats Grid with CountUp */}
       <div className="grid grid-cols-3 gap-3 mb-4">
         <div className="glass rounded-xl p-3 text-center">
           <Star className="w-4 h-4 text-primary mx-auto mb-1" />
-          <p className="text-lg font-bold text-foreground">{totalScore}</p>
+          <p className="text-lg font-bold text-foreground"><CountUp end={totalScore} duration={2} /></p>
           <p className="text-[10px] text-muted-foreground">Total Score</p>
         </div>
         <div className="glass rounded-xl p-3 text-center">
           <Coins className="w-4 h-4 text-warning mx-auto mb-1" />
-          <p className="text-lg font-bold text-foreground">{profile.coins}</p>
+          <p className="text-lg font-bold text-foreground"><CountUp end={profile.coins} duration={2} /></p>
           <p className="text-[10px] text-muted-foreground">Coins</p>
         </div>
         <div className="glass rounded-xl p-3 text-center">
           <Flame className="w-4 h-4 text-destructive mx-auto mb-1 animate-flame" />
-          <p className="text-lg font-bold text-foreground">{profile.streak_count}</p>
+          <p className="text-lg font-bold text-foreground"><CountUp end={profile.streak_count} duration={1} /></p>
           <p className="text-[10px] text-muted-foreground">Streak</p>
         </div>
       </div>
@@ -86,15 +94,15 @@ export default function Profile() {
       {/* Points Breakdown */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         <div className="glass rounded-xl p-3 text-center">
-          <p className="text-sm font-bold text-secondary">{profile.creator_points}</p>
+          <p className="text-sm font-bold text-secondary"><CountUp end={profile.creator_points} /></p>
           <p className="text-[10px] text-muted-foreground">Creator</p>
         </div>
         <div className="glass rounded-xl p-3 text-center">
-          <p className="text-sm font-bold text-primary">{profile.helper_points}</p>
+          <p className="text-sm font-bold text-primary"><CountUp end={profile.helper_points} /></p>
           <p className="text-[10px] text-muted-foreground">Helper</p>
         </div>
         <div className="glass rounded-xl p-3 text-center">
-          <p className="text-sm font-bold text-warning">{profile.knowledge_points}</p>
+          <p className="text-sm font-bold text-warning"><CountUp end={profile.knowledge_points} /></p>
           <p className="text-[10px] text-muted-foreground">Knowledge</p>
         </div>
       </div>
@@ -122,7 +130,7 @@ export default function Profile() {
         <h3 className="text-sm font-semibold text-foreground mb-3">Reels ({reels.length})</h3>
         <div className="grid grid-cols-3 gap-2">
           {reels.map(reel => (
-            <div key={reel.id} className="aspect-[9/16] rounded-xl glass overflow-hidden relative group">
+            <div key={reel.id} className="aspect-[9/16] rounded-xl glass overflow-hidden relative group cursor-pointer">
               <video src={reel.video_url} className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                 <p className="text-xs text-foreground text-center px-2">{reel.title}</p>
@@ -131,6 +139,6 @@ export default function Profile() {
           ))}
         </div>
       </div>
-    </div>
+    </FadeContent>
   );
 }

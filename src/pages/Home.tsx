@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import ReelCard from '@/components/ReelCard';
+import Particles from '@/components/effects/Particles';
+import SplashCursor from '@/components/effects/SplashCursor';
+import FadeContent from '@/components/effects/FadeContent';
+import BlurText from '@/components/effects/BlurText';
 
 export default function Home() {
   const { user } = useAuth();
@@ -17,7 +21,7 @@ export default function Home() {
         .is('parent_reel_id', null)
         .order('reach_score', { ascending: false })
         .limit(50);
-      
+
       if (data && data.length > 0) {
         setReels(data);
         const userIds = [...new Set(data.map(r => r.uploaded_by))];
@@ -43,28 +47,40 @@ export default function Home() {
 
   if (reels.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen pt-16 px-4">
-        <div className="text-center max-w-md">
-          <div className="w-20 h-20 rounded-2xl gradient-primary glow-primary flex items-center justify-center mx-auto mb-6">
-            <span className="text-3xl font-bold text-foreground">CR</span>
+      <div className="flex flex-col items-center justify-center min-h-screen pt-16 px-4 relative overflow-hidden">
+        <Particles count={35} color="#6c63ff" />
+        <FadeContent className="text-center max-w-md relative z-10">
+          <div className="w-24 h-24 rounded-2xl gradient-primary glow-primary flex items-center justify-center mx-auto mb-6">
+            <BlurText text="CR" className="text-4xl font-bold text-foreground" />
           </div>
-          <h1 className="text-3xl font-bold gradient-text mb-3">Welcome to CodeReels</h1>
+          <h1 className="text-4xl font-bold mb-3">
+            <BlurText text="CodeReels" className="gradient-text" delay={0.3} />
+          </h1>
           <p className="text-muted-foreground mb-6">
-            The short-video platform for coding education. Upload your first reel to get started!
+            <BlurText text="The short-video platform for coding education. Upload your first reel to get started!" delay={0.5} />
           </p>
-          <p className="text-xs text-muted-foreground font-mono">
-            DSA • Web Dev • AI-ML • Hardware
-          </p>
-        </div>
+          <div className="flex justify-center gap-3">
+            {['DSA', 'Web Dev', 'AI-ML', 'Hardware'].map((cat, i) => (
+              <span key={cat} className="px-3 py-1 rounded-full text-xs font-mono glass border border-border text-muted-foreground">
+                {cat}
+              </span>
+            ))}
+          </div>
+        </FadeContent>
       </div>
     );
   }
 
   return (
-    <div className="pt-16 pb-20 md:pb-0 snap-y snap-mandatory h-[calc(100vh-4rem)] overflow-y-scroll scrollbar-hide">
-      {reels.map(reel => (
-        <ReelCard key={reel.id} reel={reel} uploaderProfile={profiles[reel.uploaded_by]} />
-      ))}
+    <div className="relative">
+      <Particles count={25} color="#6c63ff" className="fixed" />
+      <SplashCursor color="#6c63ff">
+        <div className="pt-16 pb-20 md:pb-0 snap-y snap-mandatory h-[calc(100vh-4rem)] overflow-y-scroll scrollbar-hide">
+          {reels.map(reel => (
+            <ReelCard key={reel.id} reel={reel} uploaderProfile={profiles[reel.uploaded_by]} />
+          ))}
+        </div>
+      </SplashCursor>
     </div>
   );
 }

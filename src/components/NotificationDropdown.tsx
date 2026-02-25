@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import AnimatedList from './effects/AnimatedList';
 
 interface Notification {
   id: string;
@@ -54,7 +55,7 @@ export default function NotificationDropdown() {
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="w-5 h-5" />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-destructive text-[10px] font-bold flex items-center justify-center text-foreground">
+            <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-destructive text-[10px] font-bold flex items-center justify-center text-foreground animate-pulse">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
@@ -69,16 +70,18 @@ export default function NotificationDropdown() {
         </div>
         <ScrollArea className="max-h-80">
           {notifications.length === 0 ? (
-            <p className="p-4 text-center text-muted-foreground text-sm">No notifications</p>
+            <p className="p-4 text-center text-muted-foreground text-sm">No notifications yet</p>
           ) : (
-            notifications.map(n => (
-              <div key={n.id} className={`p-3 border-b border-border text-sm ${!n.is_read ? 'bg-primary/5' : ''}`}>
-                <p className="text-foreground">{n.message}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {new Date(n.created_at).toLocaleDateString()}
-                </p>
-              </div>
-            ))
+            <AnimatedList>
+              {notifications.map(n => (
+                <div key={n.id} className={`p-3 border-b border-border text-sm transition-colors ${!n.is_read ? 'bg-primary/5' : ''}`}>
+                  <p className="text-foreground">{n.message}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {new Date(n.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+              ))}
+            </AnimatedList>
           )}
         </ScrollArea>
       </PopoverContent>
