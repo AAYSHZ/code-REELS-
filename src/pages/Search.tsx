@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search as SearchIcon } from 'lucide-react';
+import { Search as SearchIcon, Bot, ExternalLink, Sparkles } from 'lucide-react';
 import { getDifficultyBg, getCategoryColor } from '@/utils/pointsEngine';
 import { Link } from 'react-router-dom';
 import FadeContent from '@/components/effects/FadeContent';
@@ -17,8 +17,20 @@ export default function SearchPage() {
   const [results, setResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
 
+  // AI Search state
+  const [aiAnswer, setAiAnswer] = useState('');
+  const [aiSources, setAiSources] = useState<any[]>([]);
+  const [aiFromDb, setAiFromDb] = useState(false);
+  const [aiSearching, setAiSearching] = useState(false);
+  const [showAi, setShowAi] = useState(false);
+
   const handleSearch = async () => {
     setSearching(true);
+    setShowAi(false);
+    setAiAnswer('');
+    setAiSources([]);
+
+    // Normal database search (existing behavior)
     let q = supabase.from('reels').select('*').order('reach_score', { ascending: false }).limit(20);
     if (query) q = q.ilike('title', `%${query}%`);
     if (category !== 'all') q = q.eq('category', category);
@@ -26,6 +38,41 @@ export default function SearchPage() {
     const { data } = await q;
     if (data) setResults(data);
     setSearching(false);
+
+    // If no results found from the normal search and we have a query, trigger AI search
+    if (query && (!data || data.length === 0)) {
+      handleAiSearch();
+    }
+  };
+
+  const handleAiSearch = async () => {
+    if (!query.trim()) return;
+    setAiSearching(true);
+    setShowAi(true);
+    setAiAnswer('');
+    setAiSources([]);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-search', {
+        body: { query },
+      });
+
+      if (error) throw error;
+
+      setAiAnswer(data.answer || 'No answer found.');
+      setAiSources(data.sources || []);
+      setAiFromDb(data.fromDatabase || false);
+
+      // If the AI found reels in the database, show them
+      if (data.fromDatabase && data.reels?.length > 0) {
+        setResults(data.reels);
+      }
+    } catch (err: any) {
+      console.error('AI Search failed:', err);
+      setAiAnswer('Sorry, AI search failed. Please try again.');
+    } finally {
+      setAiSearching(false);
+    }
   };
 
   return (
@@ -41,7 +88,7 @@ export default function SearchPage() {
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSearch()}
-            placeholder="Search reels..."
+            placeholder="Search reels or ask anything..."
             className="pl-10 bg-muted/30 border-border"
           />
         </div>
@@ -76,8 +123,69 @@ export default function SearchPage() {
             Search
           </button>
         </Magnet>
+        {query && (
+          <Magnet strength={0.15}>
+            <button onClick={handleAiSearch} className="px-4 rounded-lg text-sm font-medium text-foreground border border-primary/30 hover:bg-primary/10 transition-colors flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5" />
+              Ask AI
+            </button>
+          </Magnet>
+        )}
       </div>
 
+      {/* ─── AI Answer Section ─────────────────────────────────────────── */}
+      {showAi && (
+        <div className="mb-6 glass rounded-xl p-5 border border-primary/20">
+          <div className="flex items-center gap-2 mb-3">
+            <Bot className="w-5 h-5 text-primary" />
+            <span className="text-sm font-semibold text-primary">AI Answer</span>
+            {aiFromDb && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">
+                From CodeReels
+              </span>
+            )}
+            {!aiFromDb && aiAnswer && !aiSearching && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                From Internet
+              </span>
+            )}
+          </div>
+
+          {aiSearching ? (
+            <div className="flex items-center gap-3 py-4">
+              <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <span className="text-sm text-muted-foreground">Searching the internet with AI...</span>
+            </div>
+          ) : (
+            <>
+              <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">{aiAnswer}</p>
+
+              {/* Sources */}
+              {aiSources.length > 0 && (
+                <div className="mt-4 pt-3 border-t border-border/50">
+                  <p className="text-[11px] text-muted-foreground mb-2 font-medium">Sources:</p>
+                  <div className="flex flex-col gap-1.5">
+                    {aiSources.map((s: any, i: number) => (
+                      <a
+                        key={i}
+                        href={s.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-primary/80 hover:text-primary flex items-center gap-1 truncate transition-colors"
+                      >
+                        <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                        <span className="truncate">{s.title || s.url}</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ─── Reel Results ──────────────────────────────────────────────── */}
       {searching ? (
         <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>
       ) : (
@@ -103,7 +211,7 @@ export default function SearchPage() {
               </Link>
             </TiltedCard>
           ))}
-          {results.length === 0 && !searching && (
+          {results.length === 0 && !searching && !showAi && (
             <p className="text-center text-muted-foreground py-8 text-sm">Search for reels or browse trending content</p>
           )}
         </div>
