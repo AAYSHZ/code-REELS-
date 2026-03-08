@@ -32,7 +32,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
   const [followListType, setFollowListType] = useState<'followers' | 'following' | null>(null);
-  const { isFollowing, toggleFollow, followerCount, loading: followLoading } = useFollow(userId || '');
+  const { isFollowing, toggleFollow, followerCount, followingCount, loading: followLoading } = useFollow(userId || '');
 
   const isOwnProfile = user?.id === userId;
 
@@ -144,7 +144,7 @@ export default function Profile() {
             <strong className="text-foreground">{followerCount}</strong> Followers
           </button>
           <button onClick={() => setFollowListType('following')} className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50">
-            <strong className="text-foreground">{profile.following_count || 0}</strong> Following
+            <strong className="text-foreground">{followingCount}</strong> Following
           </button>
           {profile.total_watch_hours != null && profile.total_watch_hours > 0 && (
             <span className="flex items-center gap-1 text-[10px] text-muted-foreground">

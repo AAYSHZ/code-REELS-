@@ -36,11 +36,40 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
   const watchTracked = useRef(false);
 
   useEffect(() => {
-    // Sync local liked state if the prop changes
-    if (user && reel.liked_by) {
-      setLiked(reel.liked_by.includes(user.id));
-    }
-  }, [user, reel.liked_by]);
+    if (!user || !reel.id) return;
+
+    const checkLike = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('reel_likes')
+          .select('id')
+          .eq('reel_id', reel.id)
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (error) console.error("Error checking like:", error);
+        setLiked(!!data);
+      } catch (err) {
+        console.error("checkLike catch error:", err);
+      }
+    };
+
+    checkLike();
+
+    const channel = supabase
+      .channel(`likes-${reel.id}`)
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'reel_likes', filter: `reel_id=eq.${reel.id}` },
+        () => { checkLike(); }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log(`Subscribed to likes changes for ${reel.id}`);
+        }
+      });
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user, reel.id]);
 
   useEffect(() => {
     if (!user) return;
@@ -103,111 +132,159 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
       return;
     }
 
-    const isCurrentlyLiked = liked; // optimism base
+    try {
+      const isCurrentlyLiked = liked; // optimism base
 
-    if (isCurrentlyLiked) {
-      // ── UNLIKE ──────────────────────────────────
-      // Call Supabase update FIRST
-      await supabase.rpc('toggle_like', { p_reel_id: reel.id, p_user_id: user.id, p_is_like: false });
+      if (isCurrentlyLiked) {
+        // ── UNLIKE ──────────────────────────────────
+        // Optimistic UI update
+        setLiked(false);
+        setLikesCount((c: number) => Math.max(0, c - 1));
 
-      // Then update local state
-      setLiked(false);
-      setLikesCount((c: number) => Math.max(0, c - 1));
+        const { error: unlikeErr } = await supabase
+          .from('reel_likes')
+          .delete()
+          .eq('reel_id', reel.id)
+          .eq('user_id', user.id);
 
-      // Reverse creator_points and skill_points on reel owner (if not self)
-      if (reel.uploaded_by !== user.id) {
-        const { data: ownerProfile } = await supabase
-          .from('profiles')
-          .select('creator_points, skill_points, xp, coins, reputation_score, level, total_score')
-          .eq('user_id', reel.uploaded_by)
-          .single();
-
-        if (ownerProfile) {
-          const skillKey = getCategorySkillKey(reel.category);
-          const currentSkills = (ownerProfile.skill_points as any) || {};
-          const updatedXp = Math.max(0, (ownerProfile.xp ?? 0) - 2);
-          const updatedCoins = calculateCoins(updatedXp);
-          const updatedLevel = calculateLevel(updatedXp);
-          const updatedTotalScore = calculateTotalScore(updatedXp, ownerProfile.reputation_score ?? 0, updatedCoins);
-
-          await supabase
-            .from('profiles')
-            .update({
-              creator_points: Math.max(0, (ownerProfile.creator_points ?? 0) - 2),
-              skill_points: {
-                ...currentSkills,
-                [skillKey]: Math.max(0, (currentSkills[skillKey] ?? 0) - 2),
-              },
-              xp: updatedXp,
-              coins: updatedCoins,
-              level: updatedLevel,
-              total_score: updatedTotalScore,
-            })
-            .eq('user_id', reel.uploaded_by);
-        }
-      }
-    } else {
-      // ── LIKE ────────────────────────────────────
-      // Call Supabase update FIRST
-      await supabase.rpc('toggle_like', { p_reel_id: reel.id, p_user_id: user.id, p_is_like: true });
-
-      // Then update local state
-      setLiked(true);
-      setLikesCount((c: number) => c + 1);
-      setHeartAnim(true);
-      setTimeout(() => setHeartAnim(false), 600);
-
-      // Bottom right toast
-      toast.success("+2 XP", { position: 'bottom-right' });
-
-      // Award creator_points and skill_points to reel owner (if not self)
-      if (reel.uploaded_by !== user.id) {
-        const { data: ownerProfile } = await supabase
-          .from('profiles')
-          .select('creator_points, skill_points, xp, coins, reputation_score, level, total_score, name, username')
-          .eq('user_id', reel.uploaded_by)
-          .single();
-
-        if (ownerProfile) {
-          const skillKey = getCategorySkillKey(reel.category);
-          const currentSkills = (ownerProfile.skill_points as any) || {};
-          const updatedXp = (ownerProfile.xp ?? 0) + 2;
-          const updatedCoins = calculateCoins(updatedXp);
-          const updatedLevel = calculateLevel(updatedXp);
-          const updatedTotalScore = calculateTotalScore(updatedXp, ownerProfile.reputation_score ?? 0, updatedCoins);
-
-          await supabase
-            .from('profiles')
-            .update({
-              creator_points: (ownerProfile.creator_points ?? 0) + 2,
-              skill_points: {
-                ...currentSkills,
-                [skillKey]: (currentSkills[skillKey] ?? 0) + 2,
-              },
-              xp: updatedXp,
-              coins: updatedCoins,
-              level: updatedLevel,
-              total_score: updatedTotalScore,
-            })
-            .eq('user_id', reel.uploaded_by);
+        if (unlikeErr) {
+          console.error("Unlike error:", unlikeErr);
+          // Rollback
+          setLiked(true);
+          setLikesCount((c: number) => c + 1);
+          return;
         }
 
-        // Insert like notification
-        const { data: likerProfile } = await supabase
-          .from('profiles')
-          .select('name, username')
-          .eq('user_id', user.id)
-          .single();
+        const { error: decErr } = await supabase
+          .from('reels')
+          .update({ likes_count: Math.max(0, likesCount - 1) })
+          .eq('id', reel.id);
 
-        const displayName = likerProfile?.name || likerProfile?.username || 'Someone';
-        await supabase.from('notifications').insert({
-          user_id: reel.uploaded_by,
-          type: 'like',
-          message: `${displayName} liked your reel: ${reel.title}`,
-          related_reel_id: reel.id,
-          is_read: false,
-        });
+        if (decErr) console.error("Error decrementing likes:", decErr);
+
+        // Reverse creator_points and skill_points on reel owner (if not self)
+        if (reel.uploaded_by !== user.id) {
+          const { data: ownerProfile, error: profileErr } = await supabase
+            .from('profiles')
+            .select('creator_points, skill_points, xp, coins, reputation_score, level, total_score')
+            .eq('user_id', reel.uploaded_by)
+            .single();
+
+          if (profileErr) console.error("Error fetching owner profile on unlike:", profileErr);
+
+          if (ownerProfile) {
+            const skillKey = getCategorySkillKey(reel.category);
+            const currentSkills = (ownerProfile.skill_points as any) || {};
+            const updatedXp = Math.max(0, (ownerProfile.xp ?? 0) - 2);
+            const updatedCoins = calculateCoins(updatedXp);
+            const updatedLevel = calculateLevel(updatedXp);
+            const updatedTotalScore = calculateTotalScore(updatedXp, ownerProfile.reputation_score ?? 0, updatedCoins);
+
+            const { error: updateProfErr } = await supabase
+              .from('profiles')
+              .update({
+                creator_points: Math.max(0, (ownerProfile.creator_points ?? 0) - 2),
+                skill_points: {
+                  ...currentSkills,
+                  [skillKey]: Math.max(0, (currentSkills[skillKey] ?? 0) - 2),
+                },
+                xp: updatedXp,
+                coins: updatedCoins,
+                level: updatedLevel,
+                total_score: updatedTotalScore,
+              })
+              .eq('user_id', reel.uploaded_by);
+            if (updateProfErr) console.error("Error updating owner profile on unlike:", updateProfErr);
+          }
+        }
+      } else {
+        // ── LIKE ────────────────────────────────────
+        // Optimistic UI update
+        setLiked(true);
+        setLikesCount((c: number) => c + 1);
+        setHeartAnim(true);
+        setTimeout(() => setHeartAnim(false), 600);
+
+        // Bottom right toast
+        toast.success("+2 XP", { position: 'bottom-right' });
+
+        const { error: likeErr } = await supabase
+          .from('reel_likes')
+          .insert({ reel_id: reel.id, user_id: user.id });
+
+        if (likeErr) {
+          console.error("Like error:", likeErr);
+          // Rollback
+          setLiked(false);
+          setLikesCount((c: number) => Math.max(0, c - 1));
+          return;
+        }
+
+        const { error: incErr } = await supabase
+          .from('reels')
+          .update({ likes_count: likesCount + 1 })
+          .eq('id', reel.id);
+
+        if (incErr) console.error("Error incrementing likes:", incErr);
+
+        // Award creator_points and skill_points to reel owner (if not self)
+        if (reel.uploaded_by !== user.id) {
+          const { data: ownerProfile, error: profileErr } = await supabase
+            .from('profiles')
+            .select('creator_points, skill_points, xp, coins, reputation_score, level, total_score, name, username')
+            .eq('user_id', reel.uploaded_by)
+            .single();
+
+          if (profileErr) console.error("Error fetching owner profile on like:", profileErr);
+
+          if (ownerProfile) {
+            const skillKey = getCategorySkillKey(reel.category);
+            const currentSkills = (ownerProfile.skill_points as any) || {};
+            const updatedXp = (ownerProfile.xp ?? 0) + 2;
+            const updatedCoins = calculateCoins(updatedXp);
+            const updatedLevel = calculateLevel(updatedXp);
+            const updatedTotalScore = calculateTotalScore(updatedXp, ownerProfile.reputation_score ?? 0, updatedCoins);
+
+            const { error: updateProfErr } = await supabase
+              .from('profiles')
+              .update({
+                creator_points: (ownerProfile.creator_points ?? 0) + 2,
+                skill_points: {
+                  ...currentSkills,
+                  [skillKey]: (currentSkills[skillKey] ?? 0) + 2,
+                },
+                xp: updatedXp,
+                coins: updatedCoins,
+                level: updatedLevel,
+                total_score: updatedTotalScore,
+              })
+              .eq('user_id', reel.uploaded_by);
+            if (updateProfErr) console.error("Error updating owner profile on like:", updateProfErr);
+          }
+
+          // Insert like notification
+          try {
+            const { data: likerProfile } = await supabase
+              .from('profiles')
+              .select('name, username')
+              .eq('user_id', user.id)
+              .single();
+
+            const likerName = likerProfile?.name || likerProfile?.username || 'Someone';
+            await supabase.from('notifications').insert({
+              user_id: reel.uploaded_by,
+              type: 'like',
+              message: `${likerName} liked your reel: ${reel.title}`,
+              related_reel_id: reel.id,
+              is_read: false,
+            });
+          } catch (notifErr) {
+            console.error("Failed to insert like notification:", notifErr);
+          }
+        }
       }
+    } catch (err) {
+      console.error("handleLike root exception:", err);
     }
   };
 

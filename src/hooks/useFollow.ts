@@ -6,6 +6,7 @@ interface UseFollowReturn {
   isFollowing: boolean;
   toggleFollow: () => Promise<void>;
   followerCount: number;
+  followingCount: number;
   loading: boolean;
 }
 
@@ -13,103 +14,140 @@ export function useFollow(targetUserId: string): UseFollowReturn {
   const { user, profile: currentProfile } = useAuth();
   const [isFollowing, setIsFollowing] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // On mount: check follow status + subscribe
-  useEffect(() => {
+  const fetchState = useCallback(async () => {
     if (!targetUserId) return;
-
-    const fetchState = async () => {
+    
+    try {
       setLoading(true);
 
-      // Get follower count from profiles table
-      const { data: targetProfile } = await supabase
-        .from('profiles')
-        .select('followers_count')
-        .eq('user_id', targetUserId)
-        .single();
+      // Get follower count
+      const { count: followersCountQuery, error: followersError } = await supabase
+        .from('follows')
+        .select('*', { count: 'exact', head: true })
+        .eq('following_id', targetUserId);
+      if (followersError) console.error("Error fetching followers:", followersError);
+      
+      setFollowerCount(followersCountQuery ?? 0);
 
-      setFollowerCount(targetProfile?.followers_count ?? 0);
+      // Get following count
+      const { count: followingCountQuery, error: followingError } = await supabase
+        .from('follows')
+        .select('*', { count: 'exact', head: true })
+        .eq('follower_id', targetUserId);
+      if (followingError) console.error("Error fetching following:", followingError);
+
+      setFollowingCount(followingCountQuery ?? 0);
 
       // Check if current user follows the target
-      if (user) {
-        const { data } = await supabase
+      if (user && user.id !== targetUserId) {
+        const { data, error: followVerifyError } = await supabase
           .from('follows')
           .select('id')
           .eq('follower_id', user.id)
           .eq('following_id', targetUserId)
           .maybeSingle();
-
-        setIsFollowing(!!data);
+        
+        if (followVerifyError) console.error("Error verifying follow:", followVerifyError);
+        setIsFollowing(data !== null);
+      } else {
+        setIsFollowing(false);
       }
-
+    } catch (err) {
+      console.error("fetchState exception in useFollow:", err);
+    } finally {
       setLoading(false);
-    };
+    }
+  }, [targetUserId, user]);
 
+  // On mount: check follow status + subscribe
+  useEffect(() => {
     fetchState();
 
-    // Subscribe to realtime changes on follows table for this target user
-    const channel = supabase.channel(`follows_target_${targetUserId}`)
+    if (!targetUserId) return;
+
+    // Subscribe to realtime changes
+    const channel = supabase
+      .channel(`follows-changes-${targetUserId}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'follows', filter: `following_id=eq.${targetUserId}` },
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
-            setFollowerCount((c) => c + 1);
-            if (payload.new.follower_id === user?.id) {
-              setIsFollowing(true);
-            }
-          } else if (payload.eventType === 'DELETE') {
-            setFollowerCount((c) => Math.max(0, c - 1));
-            if (payload.old.follower_id === user?.id) {
-              setIsFollowing(false);
-            }
-          }
+        { event: '*', schema: 'public', table: 'follows' },
+        () => { 
+          // Refetch stats when ANY follow changes to ensure accuracy
+          fetchState();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log(`Subscribed to follows changes for ${targetUserId}`);
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, targetUserId]);
+  }, [fetchState, targetUserId]);
 
   const toggleFollow = useCallback(async () => {
     if (!user || !targetUserId || user.id === targetUserId) return;
 
-    if (isFollowing) {
-      // ── UNFOLLOW ───────────────────────────────
-      // We rely on realtime to update the isFollowing and count state locally
-      // But we can do an optimistic local update too
-      setIsFollowing(false);
-      setFollowerCount(prev => Math.max(0, prev - 1));
+    try {
+      if (isFollowing) {
+        // optimistically update locally to avoid jumpiness
+        setIsFollowing(false);
+        setFollowerCount(prev => Math.max(0, prev - 1));
 
-      await supabase.rpc('toggle_follow', {
-        p_target_user_id: targetUserId,
-        p_current_user_id: user.id,
-        p_is_following: false
-      });
-    } else {
-      // ── FOLLOW ─────────────────────────────────
-      setIsFollowing(true);
-      setFollowerCount(prev => prev + 1);
+        // Delete follow
+        const { error } = await supabase
+          .from('follows')
+          .delete()
+          .eq('follower_id', user.id)
+          .eq('following_id', targetUserId);
 
-      await supabase.rpc('toggle_follow', {
-        p_target_user_id: targetUserId,
-        p_current_user_id: user.id,
-        p_is_following: true
-      });
+        if (error) {
+          console.error("Error deleting follow:", error);
+          // Rollback
+          setIsFollowing(true);
+          setFollowerCount(prev => prev + 1);
+        }
+      } else {
+        // optimistically update locally
+        setIsFollowing(true);
+        setFollowerCount(prev => prev + 1);
 
-      // Insert follow notification
-      const displayName = currentProfile?.name || currentProfile?.username || 'Someone';
-      await supabase.from('notifications').insert({
-        user_id: targetUserId,
-        type: 'follow',
-        message: `${displayName} started following you`,
-        is_read: false,
-      });
+        // Insert follow
+        const { error } = await supabase
+          .from('follows')
+          .insert({ follower_id: user.id, following_id: targetUserId });
+
+        if (error) {
+          console.error("Error inserting follow:", error);
+          // Rollback
+          setIsFollowing(false);
+          setFollowerCount(prev => Math.max(0, prev - 1));
+        } else {
+          // Insert follow notification
+          try {
+            const displayName = currentProfile?.name || currentProfile?.username || 'Someone';
+            await supabase.from('notifications').insert({
+              user_id: targetUserId,
+              type: 'follow',
+              message: `${displayName} started following you`,
+              is_read: false,
+            });
+          } catch (notifErr) {
+            console.error("Failed to insert follow notification:", notifErr);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("toggleFollow exception in useFollow:", err);
+      // Re-sync with actual state if exception happens
+      fetchState();
     }
-  }, [user, currentProfile, targetUserId, isFollowing, followerCount]);
+  }, [user, currentProfile, targetUserId, isFollowing, fetchState]);
 
-  return { isFollowing, toggleFollow, followerCount, loading };
+  return { isFollowing, toggleFollow, followerCount, followingCount, loading };
 }
