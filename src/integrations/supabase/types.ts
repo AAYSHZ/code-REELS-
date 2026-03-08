@@ -599,6 +599,22 @@ export type Database = {
         }
         Returns: boolean
       }
+      toggle_like: {
+        Args: {
+          p_reel_id: string
+          p_user_id: string
+          p_is_like: boolean
+        }
+        Returns: undefined
+      }
+      toggle_follow: {
+        Args: {
+          p_target_user_id: string
+          p_current_user_id: string
+          p_is_following: boolean
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

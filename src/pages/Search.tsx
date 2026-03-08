@@ -193,7 +193,7 @@ export default function SearchPage() {
         <div className="space-y-3">
           {results.map(r => (
             <TiltedCard key={r.id} tiltAmount={4}>
-              <Link to={`/reel/${r.id}`} className="glass rounded-xl p-4 flex gap-4 hover:border-primary/20 transition-colors block">
+              <Link to={`/reel/${r.id}`} className="glass rounded-xl p-4 flex gap-4 hover:border-primary/20 transition-colors">
                 <div className="w-20 h-28 rounded-lg bg-muted/30 flex-shrink-0 overflow-hidden">
                   <video src={r.video_url} className="w-full h-full object-cover" />
                 </div>

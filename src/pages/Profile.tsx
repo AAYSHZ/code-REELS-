@@ -16,7 +16,9 @@ import DecryptedText from '@/components/effects/DecryptedText';
 import CircularText from '@/components/effects/CircularText';
 import GradientText from '@/components/effects/GradientText';
 import CountUp from '@/components/effects/CountUp';
+import FollowListModal from '@/components/FollowListModal';
 import { toast } from 'sonner';
+import { AnimatePresence } from 'framer-motion';
 
 export default function Profile() {
   const { userId } = useParams();
@@ -27,6 +29,7 @@ export default function Profile() {
   const [pinnedReel, setPinnedReel] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
+  const [followListType, setFollowListType] = useState<'followers' | 'following' | null>(null);
   const { isFollowing, toggleFollow, followerCount, loading: followLoading } = useFollow(userId || '');
 
   const isOwnProfile = user?.id === userId;
@@ -132,8 +135,12 @@ export default function Profile() {
 
         {/* Followers / Following */}
         <div className="flex items-center gap-4 mb-2">
-          <span className="text-xs text-muted-foreground"><strong className="text-foreground">{followerCount}</strong> Followers</span>
-          <span className="text-xs text-muted-foreground"><strong className="text-foreground">{profile.following_count || 0}</strong> Following</span>
+          <button onClick={() => setFollowListType('followers')} className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50">
+            <strong className="text-foreground">{followerCount}</strong> Followers
+          </button>
+          <button onClick={() => setFollowListType('following')} className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50">
+            <strong className="text-foreground">{profile.following_count || 0}</strong> Following
+          </button>
           {profile.total_watch_hours != null && profile.total_watch_hours > 0 && (
             <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
               <Eye className="w-3 h-3" /> {profile.total_watch_hours.toFixed(1)}h watched
@@ -315,6 +322,17 @@ export default function Profile() {
           onUpdated={fetchData}
         />
       )}
+
+      {/* Follow List Modal */}
+      <AnimatePresence>
+        {followListType && (
+          <FollowListModal
+            userId={userId || ''}
+            type={followListType}
+            onClose={() => setFollowListType(null)}
+          />
+        )}
+      </AnimatePresence>
     </FadeContent>
   );
 }

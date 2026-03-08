@@ -104,23 +104,13 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
     const isCurrentlyLiked = liked; // optimism base
 
     if (isCurrentlyLiked) {
-      // ── OPTIMISTIC UNLIKE ──────────────────────────────────
+      // ── UNLIKE ──────────────────────────────────
+      // Call Supabase update FIRST
+      await supabase.rpc('toggle_like', { p_reel_id: reel.id, p_user_id: user.id, p_is_like: false });
+
+      // Then update local state
       setLiked(false);
       setLikesCount((c: number) => Math.max(0, c - 1));
-
-      await supabase.from('reel_likes').delete().eq('reel_id', reel.id).eq('user_id', user.id);
-
-      // Decrement likes_count and remove UUID from liked_by
-      const currentLikedBy: string[] = reel.liked_by ?? [];
-      const updatedLikedBy = currentLikedBy.filter((uid: string) => uid !== user.id);
-
-      await supabase
-        .from('reels')
-        .update({
-          likes_count: Math.max(0, likesCount - 1),
-          liked_by: updatedLikedBy,
-        })
-        .eq('id', reel.id);
 
       // Reverse creator_points and skill_points on reel owner (if not self)
       if (reel.uploaded_by !== user.id) {
@@ -155,7 +145,11 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
         }
       }
     } else {
-      // ── OPTIMISTIC LIKE ────────────────────────────────────
+      // ── LIKE ────────────────────────────────────
+      // Call Supabase update FIRST
+      await supabase.rpc('toggle_like', { p_reel_id: reel.id, p_user_id: user.id, p_is_like: true });
+
+      // Then update local state
       setLiked(true);
       setLikesCount((c: number) => c + 1);
       setHeartAnim(true);
@@ -163,19 +157,6 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
 
       // Bottom right toast
       toast.success("+2 XP", { position: 'bottom-right' });
-
-      await supabase.from('reel_likes').insert({ reel_id: reel.id, user_id: user.id });
-
-      // Increment likes_count and append UUID to liked_by
-      const currentLikedBy: string[] = reel.liked_by ?? [];
-      const updatedLikedBy = [...currentLikedBy, user.id];
-      await supabase
-        .from('reels')
-        .update({
-          likes_count: likesCount + 1,
-          liked_by: updatedLikedBy,
-        })
-        .eq('id', reel.id);
 
       // Award creator_points and skill_points to reel owner (if not self)
       if (reel.uploaded_by !== user.id) {
