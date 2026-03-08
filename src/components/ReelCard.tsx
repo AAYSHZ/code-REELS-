@@ -3,12 +3,13 @@ import { Heart, Share2, Bookmark, MessageCircle, Reply, CheckCircle, Repeat2 } f
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
-import { getDifficultyBg, getCategoryColor, calculateWatchPoints } from '@/utils/pointsEngine';
+import { getDifficultyBg, getCategoryColor, calculateWatchPoints, getCategorySkillKey, calculateCoins, calculateLevel, calculateTotalScore } from '@/utils/pointsEngine';
 import PointsToast from './PointsToast';
 import { toast } from 'sonner';
 import CommentSection from './CommentSection';
 import UploadModal from './UploadModal';
 import { Link } from 'react-router-dom';
+import ReelOptionsMenu from './ReelOptionsMenu';
 import ClickSpark from './effects/ClickSpark';
 import GlitchText from './effects/GlitchText';
 import ShinyText from './effects/ShinyText';
@@ -16,15 +17,16 @@ import ShinyText from './effects/ShinyText';
 interface ReelCardProps {
   reel: any;
   uploaderProfile?: any;
+  onDeleted?: () => void;
 }
 
-export default function ReelCard({ reel, uploaderProfile }: ReelCardProps) {
+export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardProps) {
   const { user } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [liked, setLiked] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [liked, setLiked] = useState(() => reel.liked_by?.includes(user?.id) || false);
   const [likesCount, setLikesCount] = useState(reel.likes_count);
+  const [saved, setSaved] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [showReplyUpload, setShowReplyUpload] = useState(false);
   const [pointsToast, setPointsToast] = useState({ show: false, points: 0 });
@@ -32,9 +34,15 @@ export default function ReelCard({ reel, uploaderProfile }: ReelCardProps) {
   const watchTracked = useRef(false);
 
   useEffect(() => {
+    // Sync local liked state if the prop changes
+    if (user && reel.liked_by) {
+      setLiked(reel.liked_by.includes(user.id));
+    }
+  }, [user, reel.liked_by]);
+
+  useEffect(() => {
     if (!user) return;
-    supabase.from('reel_likes').select('id').eq('reel_id', reel.id).eq('user_id', user.id).maybeSingle()
-      .then(({ data }) => setLiked(!!data));
+    // We already derive liked from reel.liked_by, so we don't query reel_likes here.
     supabase.from('reel_saves').select('id').eq('reel_id', reel.id).eq('user_id', user.id).maybeSingle()
       .then(({ data }) => setSaved(!!data));
   }, [user, reel.id]);
@@ -48,7 +56,7 @@ export default function ReelCard({ reel, uploaderProfile }: ReelCardProps) {
       (entries) => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
-            video.play().catch(() => {});
+            video.play().catch(() => { });
           } else {
             video.pause();
           }
@@ -88,18 +96,135 @@ export default function ReelCard({ reel, uploaderProfile }: ReelCardProps) {
   }, [user, reel.id]);
 
   const handleLike = async () => {
-    if (!user) return;
-    if (liked) {
-      await supabase.from('reel_likes').delete().eq('reel_id', reel.id).eq('user_id', user.id);
+    if (!user) {
+      toast.error("You must be logged in to like.");
+      return;
+    }
+
+    const isCurrentlyLiked = liked; // optimism base
+
+    if (isCurrentlyLiked) {
+      // ── OPTIMISTIC UNLIKE ──────────────────────────────────
       setLiked(false);
-      setLikesCount((c: number) => c - 1);
+      setLikesCount((c: number) => Math.max(0, c - 1));
+
+      await supabase.from('reel_likes').delete().eq('reel_id', reel.id).eq('user_id', user.id);
+
+      // Decrement likes_count and remove UUID from liked_by
+      const currentLikedBy: string[] = reel.liked_by ?? [];
+      const updatedLikedBy = currentLikedBy.filter((uid: string) => uid !== user.id);
+
+      await supabase
+        .from('reels')
+        .update({
+          likes_count: Math.max(0, likesCount - 1),
+          liked_by: updatedLikedBy,
+        })
+        .eq('id', reel.id);
+
+      // Reverse creator_points and skill_points on reel owner (if not self)
+      if (reel.uploaded_by !== user.id) {
+        const { data: ownerProfile } = await supabase
+          .from('profiles')
+          .select('creator_points, skill_points, xp, coins, reputation_score, level, total_score')
+          .eq('user_id', reel.uploaded_by)
+          .single();
+
+        if (ownerProfile) {
+          const skillKey = getCategorySkillKey(reel.category);
+          const currentSkills = (ownerProfile.skill_points as any) || {};
+          const updatedXp = Math.max(0, (ownerProfile.xp ?? 0) - 2);
+          const updatedCoins = calculateCoins(updatedXp);
+          const updatedLevel = calculateLevel(updatedXp);
+          const updatedTotalScore = calculateTotalScore(updatedXp, ownerProfile.reputation_score ?? 0, updatedCoins);
+
+          await supabase
+            .from('profiles')
+            .update({
+              creator_points: Math.max(0, (ownerProfile.creator_points ?? 0) - 2),
+              skill_points: {
+                ...currentSkills,
+                [skillKey]: Math.max(0, (currentSkills[skillKey] ?? 0) - 2),
+              },
+              xp: updatedXp,
+              coins: updatedCoins,
+              level: updatedLevel,
+              total_score: updatedTotalScore,
+            })
+            .eq('user_id', reel.uploaded_by);
+        }
+      }
     } else {
-      await supabase.from('reel_likes').insert({ reel_id: reel.id, user_id: user.id });
+      // ── OPTIMISTIC LIKE ────────────────────────────────────
       setLiked(true);
       setLikesCount((c: number) => c + 1);
       setHeartAnim(true);
       setTimeout(() => setHeartAnim(false), 600);
-      setPointsToast({ show: true, points: 2 });
+
+      // Bottom right toast
+      toast.success("+2 XP", { position: 'bottom-right' });
+
+      await supabase.from('reel_likes').insert({ reel_id: reel.id, user_id: user.id });
+
+      // Increment likes_count and append UUID to liked_by
+      const currentLikedBy: string[] = reel.liked_by ?? [];
+      const updatedLikedBy = [...currentLikedBy, user.id];
+      await supabase
+        .from('reels')
+        .update({
+          likes_count: likesCount + 1,
+          liked_by: updatedLikedBy,
+        })
+        .eq('id', reel.id);
+
+      // Award creator_points and skill_points to reel owner (if not self)
+      if (reel.uploaded_by !== user.id) {
+        const { data: ownerProfile } = await supabase
+          .from('profiles')
+          .select('creator_points, skill_points, xp, coins, reputation_score, level, total_score, name, username')
+          .eq('user_id', reel.uploaded_by)
+          .single();
+
+        if (ownerProfile) {
+          const skillKey = getCategorySkillKey(reel.category);
+          const currentSkills = (ownerProfile.skill_points as any) || {};
+          const updatedXp = (ownerProfile.xp ?? 0) + 2;
+          const updatedCoins = calculateCoins(updatedXp);
+          const updatedLevel = calculateLevel(updatedXp);
+          const updatedTotalScore = calculateTotalScore(updatedXp, ownerProfile.reputation_score ?? 0, updatedCoins);
+
+          await supabase
+            .from('profiles')
+            .update({
+              creator_points: (ownerProfile.creator_points ?? 0) + 2,
+              skill_points: {
+                ...currentSkills,
+                [skillKey]: (currentSkills[skillKey] ?? 0) + 2,
+              },
+              xp: updatedXp,
+              coins: updatedCoins,
+              level: updatedLevel,
+              total_score: updatedTotalScore,
+            })
+            .eq('user_id', reel.uploaded_by);
+        }
+
+        // Insert like notification
+        const { data: likerProfile } = await supabase
+          .from('profiles')
+          .select('name, username')
+          .eq('user_id', user.id)
+          .single();
+
+        const displayName = likerProfile?.name || likerProfile?.username || 'Someone';
+        await supabase.from('notifications').insert({
+          user_id: reel.uploaded_by,
+          type: 'like',
+          message: `${displayName} liked your reel: ${reel.title}`,
+          related_reel_id: reel.id,
+          is_read: false,
+        });
+      }
     }
   };
 
@@ -125,7 +250,7 @@ export default function ReelCard({ reel, uploaderProfile }: ReelCardProps) {
     if (navigator.share) {
       try {
         await navigator.share({ title: reel.title, text: `Check out this reel on CodeReels: ${reel.title}`, url });
-      } catch {}
+      } catch { }
     } else {
       navigator.clipboard.writeText(url);
       toast('Link copied to clipboard!');
@@ -163,6 +288,15 @@ export default function ReelCard({ reel, uploaderProfile }: ReelCardProps) {
             const v = videoRef.current;
             if (v) v.paused ? v.play() : v.pause();
           }}
+        />
+
+        {/* Options menu (three-dot) */}
+        <ReelOptionsMenu
+          reelId={reel.id}
+          reelOwnerId={reel.uploaded_by}
+          videoUrl={reel.video_url}
+          thumbnailUrl={reel.thumbnail_url || ''}
+          onDeleted={onDeleted || (() => { })}
         />
 
         {/* Overlay info */}

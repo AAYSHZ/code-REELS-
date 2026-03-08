@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
+import { useFollow } from '@/hooks/useFollow';
 import { Progress } from '@/components/ui/progress';
-import { Flame, Coins, Star, Shield, Crown, Settings, Github, Linkedin, Globe, Eye, UserPlus, UserCheck, Handshake, Pin } from 'lucide-react';
+import { Flame, Coins, Star, Shield, Crown, Settings, Github, Linkedin, Globe, Eye, UserPlus, Check, Handshake, Pin } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import SkillRadarChart from '@/components/SkillRadarChart';
@@ -25,8 +27,7 @@ export default function Profile() {
   const [pinnedReel, setPinnedReel] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [followLoading, setFollowLoading] = useState(false);
+  const { isFollowing, toggleFollow, followerCount, loading: followLoading } = useFollow(userId || '');
 
   const isOwnProfile = user?.id === userId;
 
@@ -35,7 +36,7 @@ export default function Profile() {
     if (p) {
       setProfile({
         ...p,
-        skill_points: (p.skill_points as any) || { dsa: 0, webdev: 0, aiml: 0, hardware: 0, coding_problems: 0, learning_roadmaps: 0, troubleshooting: 0 },
+        skill_points: (p.skill_points as any) || { dsa: 0, webdev: 0, aiml: 0, hardware: 0, other: 0, coding_problems: 0, learning_roadmaps: 0, troubleshooting: 0 },
       });
       // Fetch pinned reel
       if (p.pinned_reel_id) {
@@ -48,11 +49,6 @@ export default function Profile() {
     const { data: r } = await supabase.from('reels').select('*').eq('uploaded_by', userId).order('created_at', { ascending: false });
     if (r) setReels(r);
 
-    // Check follow status
-    if (user && userId && user.id !== userId) {
-      const { data: f } = await supabase.from('follows').select('id').eq('follower_id', user.id).eq('following_id', userId).maybeSingle();
-      setIsFollowing(!!f);
-    }
     setLoading(false);
   };
 
@@ -62,19 +58,7 @@ export default function Profile() {
 
   const handleFollow = async () => {
     if (!user) { toast.error('Login to follow'); return; }
-    setFollowLoading(true);
-    try {
-      if (isFollowing) {
-        await supabase.from('follows').delete().eq('follower_id', user.id).eq('following_id', userId);
-        setIsFollowing(false);
-        setProfile((p: any) => ({ ...p, followers_count: Math.max(0, (p.followers_count || 1) - 1) }));
-      } else {
-        await supabase.from('follows').insert({ follower_id: user.id, following_id: userId! });
-        setIsFollowing(true);
-        setProfile((p: any) => ({ ...p, followers_count: (p.followers_count || 0) + 1 }));
-      }
-    } catch { toast.error('Failed'); }
-    setFollowLoading(false);
+    await toggleFollow();
   };
 
   const handlePinReel = async (reelId: string) => {
@@ -88,10 +72,14 @@ export default function Profile() {
   if (loading) return <div className="flex items-center justify-center min-h-screen pt-16"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>;
   if (!profile) return <div className="flex items-center justify-center min-h-screen pt-16 text-muted-foreground">Profile not found</div>;
 
-  const nextLevelXp = xpForLevel(profile.level + 1);
-  const xpProgress = Math.min((profile.xp / nextLevelXp) * 100, 100);
-  const totalScore = profile.xp + profile.reputation_score + profile.coins;
-  const badgeText = `${(profile.current_badge || 'NEWCOMER').toUpperCase()} • LEVEL ${profile.level} • `;
+  const currentXp = profile.xp || 0;
+  const currentLevel = Math.floor(Math.sqrt(currentXp / 10));
+  const xpForNextLevel = Math.pow(currentLevel + 1, 2) * 10;
+  const xpForCurrentLevel = Math.pow(currentLevel, 2) * 10;
+  const progressPercentage = Math.min(Math.max(((currentXp - xpForCurrentLevel) / (xpForNextLevel - xpForCurrentLevel)) * 100, 0), 100);
+
+  const totalScore = currentXp + (profile.reputation_score || 0) + (profile.coins || 0);
+  const badgeText = `${(profile.current_badge || 'NEWCOMER').toUpperCase()} • LEVEL ${currentLevel} • `;
 
   return (
     <FadeContent className="min-h-screen pt-16 pb-24 max-w-2xl mx-auto">
@@ -136,7 +124,7 @@ export default function Profile() {
               <p className="text-xs text-muted-foreground font-mono">@{profile.username}</p>
             )}
             <div className="flex items-center gap-2 mt-1">
-              <span className="px-2 py-0.5 rounded-full text-xs font-mono gradient-primary text-foreground">Lv.<CountUp end={profile.level} duration={1} /></span>
+              <span className="px-2 py-0.5 rounded-full text-xs font-mono gradient-primary text-foreground">Lv.<CountUp end={currentLevel} duration={1} /></span>
               <GradientText text={profile.current_badge || 'Newcomer'} className="text-xs font-semibold" />
             </div>
           </div>
@@ -144,7 +132,7 @@ export default function Profile() {
 
         {/* Followers / Following */}
         <div className="flex items-center gap-4 mb-2">
-          <span className="text-xs text-muted-foreground"><strong className="text-foreground">{profile.followers_count || 0}</strong> Followers</span>
+          <span className="text-xs text-muted-foreground"><strong className="text-foreground">{followerCount}</strong> Followers</span>
           <span className="text-xs text-muted-foreground"><strong className="text-foreground">{profile.following_count || 0}</strong> Following</span>
           {profile.total_watch_hours != null && profile.total_watch_hours > 0 && (
             <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
@@ -197,12 +185,13 @@ export default function Profile() {
           ) : (
             <Button
               size="sm"
-              className={`flex-1 ${isFollowing ? 'glass border-border' : 'gradient-primary glow-primary'}`}
+              className={`flex-1 ${isFollowing ? 'glass border-border text-muted-foreground' : ''}`}
               variant={isFollowing ? 'outline' : 'default'}
+              style={!isFollowing ? { backgroundColor: '#6C63FF', color: '#fff' } : undefined}
               onClick={handleFollow}
               disabled={followLoading}
             >
-              {isFollowing ? <><UserCheck className="w-4 h-4 mr-1" /> Following</> : <><UserPlus className="w-4 h-4 mr-1" /> Follow</>}
+              {isFollowing ? <><Check className="w-4 h-4 mr-1" /> Following</> : <><UserPlus className="w-4 h-4 mr-1" /> Follow</>}
             </Button>
           )}
         </div>
@@ -210,10 +199,18 @@ export default function Profile() {
         {/* XP Bar */}
         <div className="glass rounded-xl p-4 mb-4">
           <div className="flex justify-between text-xs mb-2">
-            <span className="text-muted-foreground">XP: <CountUp end={profile.xp} duration={1.5} /></span>
-            <span className="text-muted-foreground">Next: {nextLevelXp.toLocaleString()}</span>
+            <span className="text-muted-foreground">XP: <CountUp end={currentXp} duration={1.5} /></span>
+            <span className="text-muted-foreground">Next: {xpForNextLevel.toLocaleString()}</span>
           </div>
-          <Progress value={xpProgress} className="h-3 animate-pulse-glow" />
+          <div className="h-3 w-full bg-secondary/20 rounded-full overflow-hidden">
+            <motion.div
+              className="h-full bg-primary"
+              style={{ backgroundImage: 'linear-gradient(to right, var(--tw-gradient-stops))' }}
+              initial={{ width: 0 }}
+              animate={{ width: `${progressPercentage}%` }}
+              transition={{ duration: 1, ease: 'easeOut' }}
+            />
+          </div>
         </div>
 
         {/* Stats Grid */}

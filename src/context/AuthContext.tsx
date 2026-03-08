@@ -14,10 +14,11 @@ interface Profile {
   reputation_score: number;
   level: number;
   streak_count: number;
-  skill_points: { dsa: number; webdev: number; aiml: number; hardware: number };
+  skill_points: { dsa: number; webdev: number; aiml: number; hardware: number; other: number };
   creator_points: number;
   helper_points: number;
   knowledge_points: number;
+  total_score: number;
   current_badge: string | null;
   badges: string[] | null;
   is_verified_creator: boolean;
@@ -54,7 +55,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (data) {
       setProfile({
         ...data,
-        skill_points: (data.skill_points as any) || { dsa: 0, webdev: 0, aiml: 0, hardware: 0 },
+        skill_points: (data.skill_points as any) || { dsa: 0, webdev: 0, aiml: 0, hardware: 0, other: 0 },
+        total_score: (data as any).total_score ?? 0,
       });
     }
   };

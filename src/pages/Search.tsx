@@ -105,6 +105,7 @@ export default function SearchPage() {
             <SelectItem value="Web Dev">Web Dev</SelectItem>
             <SelectItem value="AI-ML">AI-ML</SelectItem>
             <SelectItem value="Hardware">Hardware</SelectItem>
+            <SelectItem value="Other">Other</SelectItem>
           </SelectContent>
         </Select>
         <Select value={difficulty} onValueChange={v => setDifficulty(v)}>

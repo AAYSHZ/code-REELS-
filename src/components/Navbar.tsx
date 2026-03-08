@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, Search, PlusCircle, Trophy, Zap, Bell, User, LogOut } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
+import { useNotifications } from '@/hooks/useNotifications';
 import { Button } from '@/components/ui/button';
 import UploadModal from './UploadModal';
-import NotificationDropdown from './NotificationDropdown';
+import NotificationPanel from './NotificationPanel';
 import BlurText from './effects/BlurText';
 import Dock from './effects/Dock';
 import Magnet from './effects/Magnet';
@@ -15,6 +17,8 @@ export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [showPanel, setShowPanel] = useState(false);
+  const { notifications, unreadCount, markAllRead } = useNotifications();
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -83,7 +87,38 @@ export default function Navbar() {
           </div>
 
           <div className="flex items-center gap-2">
-            {user && <NotificationDropdown />}
+            {/* Bell Icon with Notification Panel */}
+            {user && (
+              <div className="relative">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative"
+                  onClick={() => setShowPanel(prev => !prev)}
+                >
+                  <Bell className="w-5 h-5" />
+                  {unreadCount > 0 && (
+                    <span
+                      className="absolute -top-1 -right-1 flex items-center justify-center rounded-full bg-red-500 text-white animate-pulse"
+                      style={{ width: '18px', height: '18px', fontSize: '10px', fontWeight: 700 }}
+                    >
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </Button>
+
+                <AnimatePresence>
+                  {showPanel && (
+                    <NotificationPanel
+                      notifications={notifications}
+                      onClose={() => setShowPanel(false)}
+                      onOpen={markAllRead}
+                    />
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+
             {user ? (
               <div className="flex items-center gap-2">
                 <Link to={`/profile/${user.id}`}>

@@ -95,6 +95,7 @@ export default function Admin() {
                 <SelectItem value="Web Dev">Web Dev</SelectItem>
                 <SelectItem value="AI-ML">AI-ML</SelectItem>
                 <SelectItem value="Hardware">Hardware</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
               </SelectContent>
             </Select>
             <Input value={badgeName} onChange={e => setBadgeName(e.target.value)} placeholder="Badge name" className="bg-muted/30 border-border" />

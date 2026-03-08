@@ -60,7 +60,7 @@ export default function Home() {
             <BlurText text="The short-video platform for coding education. Upload your first reel to get started!" delay={0.5} />
           </p>
           <div className="flex justify-center gap-3">
-            {['DSA', 'Web Dev', 'AI-ML', 'Hardware'].map((cat, i) => (
+            {['DSA', 'Web Dev', 'AI-ML', 'Hardware', 'Other'].map((cat, i) => (
               <span key={cat} className="px-3 py-1 rounded-full text-xs font-mono glass border border-border text-muted-foreground">
                 {cat}
               </span>
@@ -77,7 +77,12 @@ export default function Home() {
       <SplashCursor color="#6c63ff">
         <div className="pt-16 pb-20 md:pb-0 snap-y snap-mandatory h-[calc(100vh-4rem)] overflow-y-scroll scrollbar-hide">
           {reels.map(reel => (
-            <ReelCard key={reel.id} reel={reel} uploaderProfile={profiles[reel.uploaded_by]} />
+            <ReelCard
+              key={reel.id}
+              reel={reel}
+              uploaderProfile={profiles[reel.uploaded_by]}
+              onDeleted={() => setReels(prev => prev.filter(r => r.id !== reel.id))}
+            />
           ))}
         </div>
       </SplashCursor>

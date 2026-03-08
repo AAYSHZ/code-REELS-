@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import ReelCard from '@/components/ReelCard';
 import { getDifficultyBg, getCategoryColor } from '@/utils/pointsEngine';
 
 export default function ReelDetail() {
   const { reelId } = useParams();
+  const navigate = useNavigate();
   const [reel, setReel] = useState<any>(null);
   const [replies, setReplies] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
@@ -31,8 +32,12 @@ export default function ReelDetail() {
 
   return (
     <div className="pt-16 pb-24">
-      <ReelCard reel={reel} uploaderProfile={profile} />
-      
+      <ReelCard
+        reel={reel}
+        uploaderProfile={profile}
+        onDeleted={() => navigate(-1)}
+      />
+
       {replies.length > 0 && (
         <div className="px-4 max-w-2xl mx-auto mt-4">
           <h3 className="text-sm font-semibold text-foreground mb-3">Reply Reels ({replies.length})</h3>

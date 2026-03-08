@@ -135,6 +135,7 @@ export default function UploadModal({ open, onOpenChange, parentReelId }: Upload
                 <SelectItem value="Web Dev">Web Dev</SelectItem>
                 <SelectItem value="AI-ML">AI-ML</SelectItem>
                 <SelectItem value="Hardware">Hardware</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
               </SelectContent>
             </Select>
 

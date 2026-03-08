@@ -258,6 +258,7 @@ export type Database = {
           skill_points: Json
           skill_tags: string[] | null
           streak_count: number
+          total_score: number
           total_watch_hours: number | null
           updated_at: string
           user_id: string
@@ -295,6 +296,7 @@ export type Database = {
           skill_points?: Json
           skill_tags?: string[] | null
           streak_count?: number
+          total_score?: number
           total_watch_hours?: number | null
           updated_at?: string
           user_id: string
@@ -332,6 +334,7 @@ export type Database = {
           skill_points?: Json
           skill_tags?: string[] | null
           streak_count?: number
+          total_score?: number
           total_watch_hours?: number | null
           updated_at?: string
           user_id?: string
@@ -422,6 +425,7 @@ export type Database = {
           is_best_solution: boolean
           is_featured: boolean
           is_reported: boolean
+          liked_by: string[]
           likes_count: number
           parent_reel_id: string | null
           reach_score: number
@@ -448,6 +452,7 @@ export type Database = {
           is_best_solution?: boolean
           is_featured?: boolean
           is_reported?: boolean
+          liked_by?: string[]
           likes_count?: number
           parent_reel_id?: string | null
           reach_score?: number
@@ -474,6 +479,7 @@ export type Database = {
           is_best_solution?: boolean
           is_featured?: boolean
           is_reported?: boolean
+          liked_by?: string[]
           likes_count?: number
           parent_reel_id?: string | null
           reach_score?: number

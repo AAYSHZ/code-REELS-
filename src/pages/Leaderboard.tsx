@@ -16,7 +16,7 @@ const TABS = [
   { value: 'rising', label: 'Rising Star', icon: TrendingUp, sort: 'weekly_fpa' },
 ];
 
-const SKILLS = ['All', 'DSA', 'Web Dev', 'AI-ML', 'Hardware'];
+const SKILLS = ['All', 'DSA', 'Web Dev', 'AI-ML', 'Hardware', 'Other'];
 
 export default function Leaderboard() {
   const [users, setUsers] = useState<any[]>([]);
@@ -74,9 +74,8 @@ export default function Leaderboard() {
               <button
                 key={s}
                 onClick={() => setSkillFilter(s)}
-                className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
-                  skillFilter === s ? 'gradient-primary text-foreground' : 'glass text-muted-foreground'
-                }`}
+                className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all ${skillFilter === s ? 'gradient-primary text-foreground' : 'glass text-muted-foreground'
+                  }`}
               >
                 {s}
               </button>
@@ -92,12 +91,11 @@ export default function Leaderboard() {
                   {users.map((u, i) => (
                     <TiltedCard key={u.id} tiltAmount={5}>
                       <Link to={`/profile/${u.user_id}`} className="flex items-center gap-3 glass rounded-xl p-3 hover:border-primary/30 transition-colors">
-                        <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                          i === 0 ? 'bg-warning/20 text-warning' :
-                          i === 1 ? 'bg-muted text-foreground' :
-                          i === 2 ? 'bg-orange-800/20 text-orange-400' :
-                          'bg-muted/30 text-muted-foreground'
-                        }`}>
+                        <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${i === 0 ? 'bg-warning/20 text-warning' :
+                            i === 1 ? 'bg-muted text-foreground' :
+                              i === 2 ? 'bg-orange-800/20 text-orange-400' :
+                                'bg-muted/30 text-muted-foreground'
+                          }`}>
                           {i + 1}
                         </span>
                         <div className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center text-sm font-bold text-foreground">
