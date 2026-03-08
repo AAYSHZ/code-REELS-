@@ -425,8 +425,11 @@ export type Database = {
           is_best_solution: boolean
           is_featured: boolean
           is_reported: boolean
+          is_repost: boolean | null
           liked_by: string[]
           likes_count: number
+          original_creator_id: string | null
+          original_reel_id: string | null
           parent_reel_id: string | null
           reach_score: number
           saves_count: number
@@ -452,8 +455,11 @@ export type Database = {
           is_best_solution?: boolean
           is_featured?: boolean
           is_reported?: boolean
+          is_repost?: boolean | null
           liked_by?: string[]
           likes_count?: number
+          original_creator_id?: string | null
+          original_reel_id?: string | null
           parent_reel_id?: string | null
           reach_score?: number
           saves_count?: number
@@ -479,8 +485,11 @@ export type Database = {
           is_best_solution?: boolean
           is_featured?: boolean
           is_reported?: boolean
+          is_repost?: boolean | null
           liked_by?: string[]
           likes_count?: number
+          original_creator_id?: string | null
+          original_reel_id?: string | null
           parent_reel_id?: string | null
           reach_score?: number
           saves_count?: number

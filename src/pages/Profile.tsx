@@ -26,6 +26,8 @@ export default function Profile() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [reels, setReels] = useState<any[]>([]);
+  const [reposts, setReposts] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'reels' | 'reposts'>('reels');
   const [pinnedReel, setPinnedReel] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
@@ -50,7 +52,10 @@ export default function Profile() {
       }
     }
     const { data: r } = await supabase.from('reels').select('*').eq('uploaded_by', userId).order('created_at', { ascending: false });
-    if (r) setReels(r);
+    if (r) {
+      setReels(r.filter(reel => !reel.is_repost));
+      setReposts(r.filter(reel => reel.is_repost));
+    }
 
     setLoading(false);
   };
@@ -221,11 +226,11 @@ export default function Profile() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-3 gap-3 mb-4">
+        <div className="grid grid-cols-4 gap-3 mb-4">
           <div className="glass rounded-xl p-3 text-center">
             <Star className="w-4 h-4 text-primary mx-auto mb-1" />
             <p className="text-lg font-bold text-foreground"><CountUp end={totalScore} duration={2} /></p>
-            <p className="text-[10px] text-muted-foreground">Total Score</p>
+            <p className="text-[10px] text-muted-foreground">Total</p>
           </div>
           <div className="glass rounded-xl p-3 text-center">
             <Coins className="w-4 h-4 text-warning mx-auto mb-1" />
@@ -236,6 +241,11 @@ export default function Profile() {
             <Flame className="w-4 h-4 text-destructive mx-auto mb-1 animate-flame" />
             <p className="text-lg font-bold text-foreground"><CountUp end={profile.streak_count} duration={1} /></p>
             <p className="text-[10px] text-muted-foreground">Streak</p>
+          </div>
+          <div className="glass rounded-xl p-3 text-center">
+            <Repeat2 className="w-4 h-4 text-secondary mx-auto mb-1" />
+            <p className="text-lg font-bold text-foreground"><CountUp end={reposts.length} duration={1} /></p>
+            <p className="text-[10px] text-muted-foreground">Reposts</p>
           </div>
         </div>
 
@@ -289,28 +299,74 @@ export default function Profile() {
           </div>
         )}
 
-        {/* User's Reels */}
-        <div>
-          <h3 className="text-sm font-semibold text-foreground mb-3">Reels ({reels.length})</h3>
-          <div className="grid grid-cols-3 gap-2">
-            {reels.map(reel => (
-              <div key={reel.id} className="aspect-[9/16] rounded-xl glass overflow-hidden relative group cursor-pointer" onClick={() => navigate(`/reel/${reel.id}`)}>
-                <video src={reel.video_url} className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
-                  <p className="text-xs text-foreground text-center px-2">{reel.title}</p>
-                  {isOwnProfile && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handlePinReel(reel.id); }}
-                      className={`text-[10px] flex items-center gap-0.5 px-2 py-0.5 rounded-full ${profile.pinned_reel_id === reel.id ? 'bg-primary/30 text-primary' : 'bg-background/60 text-muted-foreground hover:text-foreground'}`}
-                    >
-                      <Pin className="w-3 h-3" /> {profile.pinned_reel_id === reel.id ? 'Unpin' : 'Pin'}
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+        {/* Tabs for Reels and Reposts */}
+        <div className="flex gap-4 border-b border-white/10 mb-4">
+          <button
+            className={`pb-2 text-sm font-semibold transition-colors ${activeTab === 'reels' ? 'text-foreground border-b-2 border-primary' : 'text-muted-foreground'}`}
+            onClick={() => setActiveTab('reels')}
+          >
+            Reels ({reels.length})
+          </button>
+          <button
+            className={`pb-2 text-sm font-semibold transition-colors ${activeTab === 'reposts' ? 'text-foreground border-b-2 border-primary' : 'text-muted-foreground'}`}
+            onClick={() => setActiveTab('reposts')}
+          >
+            Reposts ({reposts.length})
+          </button>
         </div>
+
+        {/* Content based on tab */}
+        {activeTab === 'reels' && (
+          <div>
+            {reels.length === 0 ? (
+              <div className="text-center py-10 text-muted-foreground"><p>No reels yet.</p></div>
+            ) : (
+              <div className="grid grid-cols-3 gap-2">
+                {reels.map(reel => (
+                  <div key={reel.id} className="aspect-[9/16] rounded-xl glass overflow-hidden relative group cursor-pointer" onClick={() => navigate(`/reel/${reel.id}`)}>
+                    <video src={reel.video_url} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+                      <p className="text-xs text-foreground text-center px-2">{reel.title}</p>
+                      {isOwnProfile && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handlePinReel(reel.id); }}
+                          className={`text-[10px] flex items-center gap-0.5 px-2 py-0.5 rounded-full ${profile.pinned_reel_id === reel.id ? 'bg-primary/30 text-primary' : 'bg-background/60 text-muted-foreground hover:text-foreground'}`}
+                        >
+                          <Pin className="w-3 h-3" /> {profile.pinned_reel_id === reel.id ? 'Unpin' : 'Pin'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'reposts' && (
+          <div>
+            {reposts.length === 0 ? (
+              <div className="text-center py-10 text-muted-foreground"><p>No reposts yet.</p></div>
+            ) : (
+              <div className="grid grid-cols-3 gap-2">
+                {reposts.map(reel => (
+                  <div key={reel.id} className="aspect-[9/16] rounded-xl glass overflow-hidden relative group cursor-pointer" onClick={() => navigate(`/reel/${reel.original_reel_id || reel.id}`)}>
+                    <video src={reel.video_url} className="w-full h-full object-cover" />
+                    <div className="absolute top-2 right-2 bg-black/60 rounded-full p-1 backdrop-blur-md">
+                      <Repeat2 className="w-3 h-3 text-white" />
+                    </div>
+                    <div className="absolute inset-0 bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+                      <p className="text-xs text-foreground text-center px-2">{reel.title}</p>
+                      <span className="text-[10px] font-medium bg-secondary/80 text-secondary-foreground px-2 py-0.5 rounded-full backdrop-blur-md">
+                        Reposted
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Edit Modal */}

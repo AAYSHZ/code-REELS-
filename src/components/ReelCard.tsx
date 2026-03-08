@@ -10,6 +10,7 @@ import CommentSection from './CommentSection';
 import UploadModal from './UploadModal';
 import { Link } from 'react-router-dom';
 import ReelOptionsMenu from './ReelOptionsMenu';
+import ReelRepostMenu from './ReelRepostMenu';
 import ClickSpark from './effects/ClickSpark';
 import GlitchText from './effects/GlitchText';
 import ShinyText from './effects/ShinyText';
@@ -29,6 +30,7 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
   const [saved, setSaved] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [showReplyUpload, setShowReplyUpload] = useState(false);
+  const [showRepostMenu, setShowRepostMenu] = useState(false);
   const [pointsToast, setPointsToast] = useState({ show: false, points: 0 });
   const [heartAnim, setHeartAnim] = useState(false);
   const watchTracked = useRef(false);
@@ -226,20 +228,6 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
     setPointsToast({ show: true, points: 4 });
   };
 
-  const handleRepost = async () => {
-    const url = `${window.location.origin}/reel/${reel.id}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: reel.title, text: `Check out this reel on CodeReels: ${reel.title}`, url });
-      } catch { }
-    } else {
-      navigator.clipboard.writeText(url);
-      toast('Link copied to clipboard!');
-    }
-    await supabase.from('reels').update({ shares_count: reel.shares_count + 1 }).eq('id', reel.id);
-    setPointsToast({ show: true, points: 4 });
-  };
-
   // Difficulty label component
   const DifficultyLabel = () => {
     if (reel.difficulty === 'Hard') {
@@ -324,7 +312,7 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
             <span className="text-xs text-foreground font-medium">Chat</span>
           </button>
 
-          <button onClick={handleRepost} className="flex flex-col items-center gap-1">
+          <button onClick={() => setShowRepostMenu(true)} className="flex flex-col items-center gap-1">
             <Repeat2 className="w-7 h-7 text-foreground" />
             <span className="text-xs text-foreground font-medium">Repost</span>
           </button>
@@ -349,6 +337,7 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
       <PointsToast points={pointsToast.points} show={pointsToast.show} onDone={() => setPointsToast({ show: false, points: 0 })} />
       <CommentSection reelId={reel.id} open={showComments} onOpenChange={setShowComments} />
       <UploadModal open={showReplyUpload} onOpenChange={setShowReplyUpload} parentReelId={reel.id} />
+      <ReelRepostMenu open={showRepostMenu} onOpenChange={setShowRepostMenu} reel={reel} onRepostSuccess={() => setPointsToast({ show: true, points: 4 })} />
     </>
   );
 }
