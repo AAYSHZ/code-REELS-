@@ -17,7 +17,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 type Tab = 'dashboard' | 'users' | 'reels' | 'broadcast';
 
 export default function Admin() {
-  const { user, profile } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   const [isAdmin, setIsAdmin] = useState(false);
@@ -42,8 +42,9 @@ export default function Admin() {
 
   useEffect(() => {
     const checkAdminAndFetch = async () => {
-      // Allow access if role is admin. For users seeing this commit before the migration, 
-      // check if profile has it.
+      // Wait for auth to finish loading
+      if (authLoading) return;
+
       if (!user) {
         navigate('/login');
         return;
@@ -66,7 +67,7 @@ export default function Admin() {
       setLoading(false);
     };
     checkAdminAndFetch();
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
 
   useEffect(() => {
     if (!isAdmin) return;
