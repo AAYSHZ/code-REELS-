@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { useFollow } from '@/hooks/useFollow';
 import { Progress } from '@/components/ui/progress';
-import { Flame, Coins, Star, Shield, Crown, Settings, Github, Linkedin, Globe, Eye, UserPlus, Check, Handshake, Pin, Repeat2 } from 'lucide-react';
+import { Flame, Coins, Star, Shield, Crown, Settings, Github, Linkedin, Globe, Eye, UserPlus, Check, Handshake, Pin, Repeat2, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -32,6 +32,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
   const [followListType, setFollowListType] = useState<'followers' | 'following' | null>(null);
+  const [confirmRemoveRepostId, setConfirmRemoveRepostId] = useState<string | null>(null);
   const { isFollowing, toggleFollow, followerCount, followingCount, loading: followLoading } = useFollow(userId || '');
 
   const isOwnProfile = user?.id === userId;
@@ -67,6 +68,28 @@ export default function Profile() {
   const handleFollow = async () => {
     if (!user) { toast.error('Login to follow'); return; }
     await toggleFollow();
+  };
+
+  const handleRemoveRepost = async (repostId: string) => {
+    if (!user || !isOwnProfile) return;
+    // Optimistic UI
+    setReposts(prev => prev.filter(r => r.id !== repostId));
+    setConfirmRemoveRepostId(null);
+
+    const { error } = await supabase
+      .from('reels')
+      .delete()
+      .eq('id', repostId)
+      .eq('uploaded_by', user.id)
+      .eq('is_repost', true);
+
+    if (error) {
+      console.error('Error removing repost:', error);
+      toast.error('Failed to remove repost');
+      fetchData(); // rollback by refetching
+    } else {
+      toast.success('Repost removed');
+    }
   };
 
   const handlePinReel = async (reelId: string) => {
@@ -355,6 +378,15 @@ export default function Profile() {
                     <div className="absolute top-2 right-2 bg-black/60 rounded-full p-1 backdrop-blur-md">
                       <Repeat2 className="w-3 h-3 text-white" />
                     </div>
+                    {isOwnProfile && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setConfirmRemoveRepostId(reel.id); }}
+                        className="absolute top-2 left-2 bg-destructive/80 hover:bg-destructive rounded-full p-1 backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                        title="Remove repost"
+                      >
+                        <Trash2 className="w-3 h-3 text-white" />
+                      </button>
+                    )}
                     <div className="absolute inset-0 bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
                       <p className="text-xs text-foreground text-center px-2">{reel.title}</p>
                       <span className="text-[10px] font-medium bg-secondary/80 text-secondary-foreground px-2 py-0.5 rounded-full backdrop-blur-md">
@@ -367,6 +399,40 @@ export default function Profile() {
             )}
           </div>
         )}
+
+        {/* Confirm Remove Repost Dialog */}
+        <AnimatePresence>
+          {confirmRemoveRepostId && (
+            <motion.div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setConfirmRemoveRepostId(null)}
+            >
+              <motion.div
+                className="bg-[#1A1A1A] rounded-2xl p-6 w-[90%] max-w-sm border border-white/10 shadow-xl"
+                initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h3 className="text-foreground font-semibold text-base mb-2">Remove this repost?</h3>
+                <p className="text-muted-foreground text-sm mb-5">The original reel won't be affected.</p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setConfirmRemoveRepostId(null)}
+                    className="flex-1 py-2 rounded-xl text-sm font-medium bg-white/10 text-foreground hover:bg-white/20 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handleRemoveRepost(confirmRemoveRepostId)}
+                    className="flex-1 py-2 rounded-xl text-sm font-medium bg-destructive text-white hover:bg-destructive/80 transition-colors"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Edit Modal */}
