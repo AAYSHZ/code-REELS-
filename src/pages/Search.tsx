@@ -138,7 +138,7 @@ export default function SearchPage() {
           <Magnet strength={0.15}>
             <button onClick={handleAiSearch} className="px-4 rounded-lg text-sm font-medium text-foreground border border-primary/30 hover:bg-primary/10 transition-colors flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5" />
-              Ask AI
+              Ask CR
             </button>
           </Magnet>
         )}

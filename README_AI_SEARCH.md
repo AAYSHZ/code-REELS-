@@ -30,8 +30,8 @@ You need to create a serverless backend inside your Supabase project to handle t
 Your `.env` file works for local dev, but you need to push these API keys securely into Supabase so your Edge Function can read them in production.
 Run these commands in your terminal:
 ```bash
-supabase secrets set NVIDIA_API_KEY="your_nvidia_api_key_here"
-supabase secrets set TAVILY_API_KEY="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"
+supabase secrets set NVIDIA_API_KEY="Bearer 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"
+supabase secrets set TAVILY_API_KEY="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"
 ```
 
 ### Step 3: Write the TypeScript Logic in the Edge Function
