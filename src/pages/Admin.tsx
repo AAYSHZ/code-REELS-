@@ -49,13 +49,13 @@ export default function Admin() {
         return;
       }
 
-      const { data: currentProfile, error: profileErr } = await supabase
+      const { data } = await supabase
         .from('profiles')
         .select('role')
         .eq('user_id', user.id)
         .single();
 
-      if (profileErr || currentProfile?.role !== 'admin') {
+      if (data?.role !== 'admin') {
         toast.error('Admin access required');
         navigate('/');
         return;
