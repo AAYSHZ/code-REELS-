@@ -25,6 +25,8 @@ interface Profile {
   is_elite_creator: boolean;
   weekly_fpa: number;
   last_upload_date: string | null;
+  role?: string;
+  is_blocked?: boolean;
 }
 
 interface AuthContextType {
