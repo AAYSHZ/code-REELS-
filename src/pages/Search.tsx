@@ -57,7 +57,16 @@ export default function SearchPage() {
         body: { query },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('AI Search edge function error:', error);
+        throw error;
+      }
+
+      if (data?.error) {
+        console.error('AI Search returned error:', data.error);
+        setAiAnswer(`AI search error: ${data.error}`);
+        return;
+      }
 
       setAiAnswer(data.answer || 'No answer found.');
       setAiSources(data.sources || []);
@@ -69,7 +78,8 @@ export default function SearchPage() {
       }
     } catch (err: any) {
       console.error('AI Search failed:', err);
-      setAiAnswer('Sorry, AI search failed. Please try again.');
+      const msg = err?.message || err?.context?.message || 'Unknown error';
+      setAiAnswer(`Sorry, AI search failed: ${msg}. Check browser console for details.`);
     } finally {
       setAiSearching(false);
     }
