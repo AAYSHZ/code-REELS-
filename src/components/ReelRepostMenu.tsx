@@ -13,7 +13,7 @@ interface ReelRepostMenuProps {
 }
 
 export default function ReelRepostMenu({ open, onOpenChange, reel, onRepostSuccess }: ReelRepostMenuProps) {
-    const { user } = useAuth();
+    const { user, profile: currentProfile } = useAuth();
     const [loading, setLoading] = useState(false);
 
     const handleRepostToFeed = async () => {
@@ -45,6 +45,23 @@ export default function ReelRepostMenu({ open, onOpenChange, reel, onRepostSucce
                 .from('reels')
                 .update({ shares_count: (reel.shares_count || 0) + 1 })
                 .eq('id', reel.id);
+
+            // 3. Notify the original reel owner (skip if reposting own reel)
+            const originalOwnerId = reel.original_creator_id || reel.uploaded_by;
+            if (originalOwnerId && originalOwnerId !== user.id) {
+                try {
+                    const displayName = currentProfile?.username || currentProfile?.name || 'Someone';
+                    await supabase.from('notifications').insert({
+                        user_id: originalOwnerId,
+                        type: 'repost',
+                        message: `${displayName} reposted your reel: ${reel.title}`,
+                        related_reel_id: reel.original_reel_id || reel.id,
+                        is_read: false,
+                    });
+                } catch (notifErr) {
+                    console.error('Failed to insert repost notification:', notifErr);
+                }
+            }
 
             toast.success('Reposted to your profile');
             if (onRepostSuccess) onRepostSuccess();

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Heart, UserPlus } from 'lucide-react';
+import { Heart, UserPlus, Repeat2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import AnimatedList from './effects/AnimatedList';
 import type { Notification } from '@/hooks/useNotifications';
@@ -27,6 +27,8 @@ function getIcon(type: string) {
             return <Heart className="w-4 h-4 text-red-400 fill-red-400 flex-shrink-0" />;
         case 'follow':
             return <UserPlus className="w-4 h-4 text-blue-400 flex-shrink-0" />;
+        case 'repost':
+            return <Repeat2 className="w-4 h-4 text-green-400 flex-shrink-0" />;
         default:
             return <Heart className="w-4 h-4 text-muted-foreground flex-shrink-0" />;
     }
