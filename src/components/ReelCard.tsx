@@ -162,40 +162,13 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
 
         if (decErr) console.error("Error decrementing likes:", decErr);
 
-        // Reverse creator_points and skill_points on reel owner (if not self)
         if (reel.uploaded_by !== user.id) {
-          const { data: ownerProfile, error: profileErr } = await supabase
-            .from('profiles')
-            .select('creator_points, skill_points, xp, coins, reputation_score, level, total_score')
-            .eq('user_id', reel.uploaded_by)
-            .single();
-
-          if (profileErr) console.error("Error fetching owner profile on unlike:", profileErr);
-
-          if (ownerProfile) {
-            const skillKey = getCategorySkillKey(reel.category);
-            const currentSkills = (ownerProfile.skill_points as any) || {};
-            const updatedXp = Math.max(0, (ownerProfile.xp ?? 0) - 2);
-            const updatedCoins = calculateCoins(updatedXp);
-            const updatedLevel = calculateLevel(updatedXp);
-            const updatedTotalScore = calculateTotalScore(updatedXp, ownerProfile.reputation_score ?? 0, updatedCoins);
-
-            const { error: updateProfErr } = await supabase
-              .from('profiles')
-              .update({
-                creator_points: Math.max(0, (ownerProfile.creator_points ?? 0) - 2),
-                skill_points: {
-                  ...currentSkills,
-                  [skillKey]: Math.max(0, (currentSkills[skillKey] ?? 0) - 2),
-                },
-                xp: updatedXp,
-                coins: updatedCoins,
-                level: updatedLevel,
-                total_score: updatedTotalScore,
-              })
-              .eq('user_id', reel.uploaded_by);
-            if (updateProfErr) console.error("Error updating owner profile on unlike:", updateProfErr);
-          }
+          const { error: xpError } = await supabase.rpc('award_xp', {
+            target_user_id: reel.uploaded_by,
+            xp_amount: -2,
+            points_type: 'creator'
+          });
+          if (xpError) console.error('XP reversal failed:', xpError);
         }
       } else {
         // ── LIKE ────────────────────────────────────
@@ -218,13 +191,6 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
           setLiked(false);
           setLikesCount((c: number) => Math.max(0, c - 1));
           return;
-        } else {
-          const { error: xpError } = await supabase.rpc('award_xp', {
-            target_user_id: reel.uploaded_by,
-            xp_amount: 2,
-            points_type: 'creator'
-          });
-          if (xpError) console.error('XP award failed:', xpError);
         }
 
         const { error: incErr } = await supabase
@@ -234,40 +200,14 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
 
         if (incErr) console.error("Error incrementing likes:", incErr);
 
-        // Award creator_points and skill_points to reel owner (if not self)
         if (reel.uploaded_by !== user.id) {
-          const { data: ownerProfile, error: profileErr } = await supabase
-            .from('profiles')
-            .select('creator_points, skill_points, xp, coins, reputation_score, level, total_score, name, username')
-            .eq('user_id', reel.uploaded_by)
-            .single();
-
-          if (profileErr) console.error("Error fetching owner profile on like:", profileErr);
-
-          if (ownerProfile) {
-            const skillKey = getCategorySkillKey(reel.category);
-            const currentSkills = (ownerProfile.skill_points as any) || {};
-            const updatedXp = (ownerProfile.xp ?? 0) + 2;
-            const updatedCoins = calculateCoins(updatedXp);
-            const updatedLevel = calculateLevel(updatedXp);
-            const updatedTotalScore = calculateTotalScore(updatedXp, ownerProfile.reputation_score ?? 0, updatedCoins);
-
-            const { error: updateProfErr } = await supabase
-              .from('profiles')
-              .update({
-                creator_points: (ownerProfile.creator_points ?? 0) + 2,
-                skill_points: {
-                  ...currentSkills,
-                  [skillKey]: (currentSkills[skillKey] ?? 0) + 2,
-                },
-                xp: updatedXp,
-                coins: updatedCoins,
-                level: updatedLevel,
-                total_score: updatedTotalScore,
-              })
-              .eq('user_id', reel.uploaded_by);
-            if (updateProfErr) console.error("Error updating owner profile on like:", updateProfErr);
-          }
+          // Award XP
+          const { error: xpError } = await supabase.rpc('award_xp', {
+            target_user_id: reel.uploaded_by,
+            xp_amount: 2,
+            points_type: 'creator'
+          });
+          if (xpError) console.error('XP award failed:', xpError);
 
           // Insert like notification
           try {
