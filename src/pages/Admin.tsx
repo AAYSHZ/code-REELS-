@@ -5,7 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import {
   Users, Video, Heart, UserPlus, Search,
   Trash2, ShieldCheck, Ban, Radio, LayoutDashboard,
-  CheckCircle, XCircle
+  CheckCircle, XCircle, MessageSquare, Repeat, Bookmark,
+  Eye, AlertTriangle, RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,7 +26,18 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
 
   // Stats
-  const [stats, setStats] = useState({ users: 0, reels: 0, likes: 0, follows: 0 });
+  const [stats, setStats] = useState({
+    users: 0,
+    reels: 0,
+    likes: 0,
+    follows: 0,
+    comments: 0,
+    reposts: 0,
+    saves: 0,
+    watchHistory: 0,
+    reportedReels: 0,
+    blockedUsers: 0
+  });
 
   // Users Tab
   const [users, setUsers] = useState<any[]>([]);
@@ -63,7 +75,8 @@ export default function Admin() {
       }
 
       setIsAdmin(true);
-      await fetchDashboardStats();
+      fetchDashboardStats();
+      fetchReels(); // FIX 3: Call immediately
       setLoading(false);
     };
     checkAdminAndFetch();
@@ -77,16 +90,34 @@ export default function Admin() {
 
   // --- Fetching Logic ---
   const fetchDashboardStats = async () => {
-    const pCount = await supabase.from('profiles').select('*', { count: 'exact', head: true });
-    const rCount = await supabase.from('reels').select('*', { count: 'exact', head: true });
-    const lCount = await supabase.from('reel_likes').select('*', { count: 'exact', head: true });
-    const fCount = await supabase.from('follows').select('*', { count: 'exact', head: true });
+    const [
+      pCount, rCount, lCount, fCount,
+      cCount, repCount, sCount, wCount,
+      rpCount, bCount
+    ] = await Promise.all([
+      supabase.from('profiles').select('*', { count: 'exact', head: true }),
+      supabase.from('reels').select('*', { count: 'exact', head: true }),
+      supabase.from('reel_likes').select('*', { count: 'exact', head: true }),
+      supabase.from('follows').select('*', { count: 'exact', head: true }),
+      supabase.from('comments').select('*', { count: 'exact', head: true }),
+      supabase.from('reels').select('*', { count: 'exact', head: true }).eq('is_repost', true),
+      supabase.from('reel_saves').select('*', { count: 'exact', head: true }),
+      supabase.from('watch_history').select('*', { count: 'exact', head: true }),
+      supabase.from('reels').select('*', { count: 'exact', head: true }).eq('is_reported', true),
+      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_blocked', true),
+    ]);
 
     setStats({
       users: pCount.count || 0,
       reels: rCount.count || 0,
       likes: lCount.count || 0,
-      follows: fCount.count || 0
+      follows: fCount.count || 0,
+      comments: cCount.count || 0,
+      reposts: repCount.count || 0,
+      saves: sCount.count || 0,
+      watchHistory: wCount.count || 0,
+      reportedReels: rpCount.count || 0,
+      blockedUsers: bCount.count || 0
     });
   };
 
@@ -153,8 +184,7 @@ export default function Admin() {
   const deleteUser = async (userId: string, username: string) => {
     if (!window.confirm(`Are you sure you want to permanently delete user @${username}? This deletes all their data and reels.`)) return;
 
-    // Deleting from profiles will cascade delete reels if DB is configured that way,
-    // otherwise we manually delete reels first to save storage.
+    // FIX 1: Cleanup reels and their storage files
     const { data: userReels } = await supabase.from('reels').select('id, video_url, thumbnail_url').eq('uploaded_by', userId);
 
     if (userReels && userReels.length > 0) {
@@ -163,6 +193,13 @@ export default function Admin() {
       }
       await supabase.from('reels').delete().eq('uploaded_by', userId);
     }
+
+    // FIX 1: Cleanup follows, likes, and notifications
+    await Promise.all([
+      supabase.from('follows').delete().or(`follower_id.eq.${userId},following_id.eq.${userId}`),
+      supabase.from('reel_likes').delete().eq('user_id', userId),
+      supabase.from('notifications').delete().eq('user_id', userId)
+    ]);
 
     const { error } = await supabase.from('profiles').delete().eq('user_id', userId);
     if (error) {
@@ -177,14 +214,19 @@ export default function Admin() {
   // --- Reels Actions ---
   const deleteReelAssets = async (r: any) => {
     const filesToRemove = [];
-    if (r.video_url?.includes('supabase.co')) {
-      const vName = r.video_url.split('/').pop();
-      if (vName) filesToRemove.push(vName);
-    }
-    if (r.thumbnail_url?.includes('supabase.co')) {
-      const tName = r.thumbnail_url.split('/').pop();
-      if (tName) filesToRemove.push(tName);
-    }
+
+    // FIX 1: Extract correct storage path (path after /public/reels/)
+    const extractPath = (url: string) => {
+      if (!url || !url.includes('/public/reels/')) return null;
+      return url.split('/public/reels/')[1];
+    };
+
+    const vPath = extractPath(r.video_url);
+    if (vPath) filesToRemove.push(vPath);
+
+    const tPath = extractPath(r.thumbnail_url);
+    if (tPath) filesToRemove.push(tPath);
+
     if (filesToRemove.length > 0) {
       await supabase.storage.from('reels').remove(filesToRemove);
     }
@@ -193,6 +235,14 @@ export default function Admin() {
   const deleteReel = async (r: any) => {
     if (!window.confirm(`Delete reel "${r.title}" permanently?`)) return;
     await deleteReelAssets(r);
+
+    // FIX 1: Explicitly delete associated likes, comments, and notifications
+    await Promise.all([
+      supabase.from('reel_likes').delete().eq('reel_id', r.id),
+      supabase.from('comments').delete().eq('reel_id', r.id),
+      supabase.from('notifications').delete().like('message', `%${r.id}%`)
+    ]);
+
     const { error } = await supabase.from('reels').delete().eq('id', r.id);
     if (error) {
       toast.error('Failed to delete reel');
@@ -306,11 +356,34 @@ export default function Admin() {
             {activeTab === 'dashboard' && (
               <div className="space-y-6">
                 <h2 className="text-2xl font-bold text-white mb-6">Overview</h2>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {/* FIX 2: 4-col desktop, 2-col mobile */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   <StatCard icon={Users} title="Total Users" value={stats.users} color="text-blue-400" bg="bg-blue-400/10" />
                   <StatCard icon={Video} title="Total Reels" value={stats.reels} color="text-purple-400" bg="bg-purple-400/10" />
                   <StatCard icon={Heart} title="Total Likes" value={stats.likes} color="text-red-400" bg="bg-red-400/10" />
                   <StatCard icon={UserPlus} title="Total Follows" value={stats.follows} color="text-green-400" bg="bg-green-400/10" />
+
+                  {/* New Stats */}
+                  <StatCard icon={MessageSquare} title="Total Comments" value={stats.comments} color="text-yellow-400" bg="bg-yellow-400/10" />
+                  <StatCard icon={Repeat} title="Total Reposts" value={stats.reposts} color="text-cyan-400" bg="bg-cyan-400/10" />
+                  <StatCard icon={Bookmark} title="Total Saves" value={stats.saves} color="text-pink-400" bg="bg-pink-400/10" />
+                  <StatCard icon={Eye} title="Watch History" value={stats.watchHistory} color="text-orange-400" bg="bg-orange-400/10" />
+                </div>
+
+                {/* Extra Stats Row */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+                  <button
+                    onClick={() => { setActiveTab('reels'); setFilterReported('true'); }}
+                    className="w-full text-left"
+                  >
+                    <StatCard icon={AlertTriangle} title="Reported Reels" value={stats.reportedReels} color="text-red-500" bg="bg-red-500/10" isClickable />
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('users')}
+                    className="w-full text-left"
+                  >
+                    <StatCard icon={Ban} title="Blocked Users" value={stats.blockedUsers} color="text-orange-500" bg="bg-orange-500/10" isClickable />
+                  </button>
                 </div>
               </div>
             )}
@@ -412,7 +485,19 @@ export default function Admin() {
             {activeTab === 'reels' && (
               <div className="space-y-6">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                  <h2 className="text-2xl font-bold text-white">Manage Reels</h2>
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-2xl font-bold text-white">Manage Reels</h2>
+                    {/* FIX 3: Add manual refresh button */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={fetchReels}
+                      className="text-muted-foreground hover:text-white"
+                      title="Refresh Reels"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                    </Button>
+                  </div>
                   <div className="flex gap-2">
                     <Select value={filterCategory} onValueChange={setFilterCategory}>
                       <SelectTrigger className="w-[140px] bg-[#1A1A1A] border-white/10"><SelectValue placeholder="Category" /></SelectTrigger>
@@ -566,9 +651,9 @@ function MobileNavItem({ icon: Icon, active, onClick }: { icon: any, active: boo
   );
 }
 
-function StatCard({ icon: Icon, title, value, color, bg }: { icon: any, title: string, value: number, color: string, bg: string }) {
+function StatCard({ icon: Icon, title, value, color, bg, isClickable }: { icon: any, title: string, value: number, color: string, bg: string, isClickable?: boolean }) {
   return (
-    <div className="bg-[#1A1A1A] p-4 rounded-xl border border-white/5 flex flex-col items-start gap-4">
+    <div className={`bg-[#1A1A1A] p-4 rounded-xl border border-white/5 flex flex-col items-start gap-4 transition-all duration-200 ${isClickable ? 'hover:bg-white/[0.05] hover:border-white/10 active:scale-[0.98]' : ''}`}>
       <div className={`p-3 rounded-lg ${bg} ${color}`}>
         <Icon className="w-5 h-5" />
       </div>

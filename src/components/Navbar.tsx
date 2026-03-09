@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Search, PlusCircle, Trophy, Zap, Bell, User, LogOut, Shield } from 'lucide-react';
+import { Home, Search, PlusCircle, Trophy, Zap, Bell, User, LogOut, ShieldCheck } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -134,8 +134,8 @@ export default function Navbar() {
                 </Link>
                 {profile?.role === 'admin' && (
                   <Link to="/admin">
-                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
-                      <Shield className="w-5 h-5" />
+                    <Button variant="ghost" size="icon" className="text-purple-400 hover:text-purple-300">
+                      <ShieldCheck className="w-5 h-5" />
                     </Button>
                   </Link>
                 )}
