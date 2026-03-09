@@ -213,43 +213,64 @@ export default function Admin() {
 
   // --- Reels Actions ---
   const deleteReelAssets = async (r: any) => {
-    const filesToRemove = [];
-
-    // FIX 1: Extract correct storage path (path after /public/reels/)
-    const extractPath = (url: string) => {
-      if (!url || !url.includes('/public/reels/')) return null;
-      return url.split('/public/reels/')[1];
-    };
-
-    const vPath = extractPath(r.video_url);
-    if (vPath) filesToRemove.push(vPath);
-
-    const tPath = extractPath(r.thumbnail_url);
-    if (tPath) filesToRemove.push(tPath);
-
-    if (filesToRemove.length > 0) {
-      await supabase.storage.from('reels').remove(filesToRemove);
+    try {
+      if (r.video_url) {
+        // Extract path after /public/reels/
+        const videoPath = r.video_url.split('/public/reels/')[1];
+        if (videoPath) {
+          const { error } = await supabase.storage
+            .from('reels')
+            .remove([videoPath]);
+          if (error) console.error('Video delete error:', error);
+        }
+      }
+      if (r.thumbnail_url) {
+        const thumbPath = r.thumbnail_url.split('/public/reels/')[1];
+        if (thumbPath) {
+          const { error } = await supabase.storage
+            .from('reels')
+            .remove([thumbPath]);
+          if (error) console.error('Thumb delete error:', error);
+        }
+      }
+    } catch (e) {
+      console.error('Asset delete failed:', e);
     }
   };
 
   const deleteReel = async (r: any) => {
     if (!window.confirm(`Delete reel "${r.title}" permanently?`)) return;
-    await deleteReelAssets(r);
 
-    // FIX 1: Explicitly delete associated likes, comments, and notifications
-    await Promise.all([
-      supabase.from('reel_likes').delete().eq('reel_id', r.id),
-      supabase.from('comments').delete().eq('reel_id', r.id),
-      supabase.from('notifications').delete().like('message', `%${r.id}%`)
-    ]);
+    try {
+      // Delete storage assets first
+      await deleteReelAssets(r);
 
-    const { error } = await supabase.from('reels').delete().eq('id', r.id);
-    if (error) {
-      toast.error('Failed to delete reel');
-    } else {
-      toast.success('Reel deleted');
-      fetchReels();
+      // Delete related data
+      await supabase.from('reel_likes').delete().eq('reel_id', r.id);
+      await supabase.from('comments').delete().eq('reel_id', r.id);
+      await supabase.from('notifications').delete()
+        .ilike('message', `%${r.id}%`);
+
+      // Delete the reel itself
+      const { error } = await supabase
+        .from('reels')
+        .delete()
+        .eq('id', r.id);
+
+      if (error) {
+        console.error('Reel delete error:', error);
+        toast.error('Failed to delete reel: ' + error.message);
+        return;
+      }
+
+      // Update local state immediately
+      setReels(prev => prev.filter(reel => reel.id !== r.id));
+      toast.success('Reel deleted successfully');
       fetchDashboardStats();
+
+    } catch (e: any) {
+      console.error('Delete failed:', e);
+      toast.error('Delete failed: ' + e.message);
     }
   };
 
