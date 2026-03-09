@@ -63,6 +63,25 @@ export default function Profile() {
 
   useEffect(() => {
     if (userId) fetchData();
+
+    // Subscribe to realtime profile updates for XP/level changes
+    if (userId) {
+      const channel = supabase
+        .channel('profile-xp-' + userId)
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: 'user_id=eq.' + userId
+        }, (payload) => {
+          setProfile((prev: any) => ({ ...prev, ...payload.new }));
+        })
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
   }, [userId]);
 
   const handleFollow = async () => {

@@ -3,6 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import ReelCard from '@/components/ReelCard';
 import { getDifficultyBg, getCategoryColor } from '@/utils/pointsEngine';
+import { useAuth } from '@/context/AuthContext';
+import { toast } from 'sonner';
+import { CheckCircle } from 'lucide-react';
 
 export default function ReelDetail() {
   const { reelId } = useParams();
@@ -27,6 +30,35 @@ export default function ReelDetail() {
     if (reelId) fetch();
   }, [reelId]);
 
+  const { user } = useAuth();
+  const isOwner = user?.id === reel?.uploaded_by;
+
+  const handleMarkBestSolution = async (replyId: string, currentStatus: boolean, replyOwnerId: string) => {
+    if (!user || user.id !== reel?.uploaded_by) return;
+
+    const newStatus = !currentStatus;
+    const { error } = await supabase
+      .from('reels')
+      .update({ is_best_solution: newStatus })
+      .eq('id', replyId);
+
+    if (!error) {
+      setReplies(prev => prev.map(r => r.id === replyId ? { ...r, is_best_solution: newStatus } : r));
+      toast.success(newStatus ? 'Marked as best solution!' : 'Removed best solution mark');
+
+      if (newStatus && replyOwnerId && replyOwnerId !== user.id) {
+        const { error: xpErr } = await supabase.rpc('award_xp', {
+          target_user_id: replyOwnerId,
+          xp_amount: 50,
+          points_type: 'helper'
+        });
+        if (xpErr) console.error('XP award failed:', xpErr);
+      }
+    } else {
+      toast.error('Failed to update status');
+    }
+  };
+
   if (loading) return <div className="flex items-center justify-center min-h-screen pt-16"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>;
   if (!reel) return <div className="flex items-center justify-center min-h-screen pt-16 text-muted-foreground">Reel not found</div>;
 
@@ -43,12 +75,22 @@ export default function ReelDetail() {
           <h3 className="text-sm font-semibold text-foreground mb-3">Reply Reels ({replies.length})</h3>
           <div className="space-y-3">
             {replies.map(r => (
-              <div key={r.id} className="glass rounded-xl p-3">
+              <div key={r.id} className="glass rounded-xl p-3 relative">
                 <video src={r.video_url} controls className="w-full rounded-lg mb-2" />
-                <div className="flex items-center gap-2">
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono border ${getDifficultyBg(r.difficulty)}`}>{r.difficulty}</span>
-                  <span className="text-xs text-foreground font-medium">{r.title}</span>
-                  {r.is_best_solution && <span className="text-[10px] text-secondary font-mono">✓ Best Solution</span>}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono border ${getDifficultyBg(r.difficulty)}`}>{r.difficulty}</span>
+                    <span className="text-xs text-foreground font-medium">{r.title}</span>
+                    {r.is_best_solution && <span className="text-[10px] text-secondary font-mono flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Best Solution</span>}
+                  </div>
+                  {isOwner && (
+                    <button
+                      onClick={() => handleMarkBestSolution(r.id, !!r.is_best_solution, r.uploaded_by)}
+                      className={`text-xs px-3 py-1 rounded-full border transition-all ${r.is_best_solution ? 'border-secondary text-secondary bg-secondary/10 hover:bg-secondary/20' : 'border-border text-muted-foreground hover:text-foreground'}`}
+                    >
+                      {r.is_best_solution ? 'Unmark' : 'Mark Best'}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

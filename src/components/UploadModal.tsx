@@ -64,6 +64,14 @@ export default function UploadModal({ open, onOpenChange, parentReelId }: Upload
       // Update last upload date for streak
       await supabase.from('profiles').update({ last_upload_date: new Date().toISOString() }).eq('user_id', user.id);
 
+      // Award XP for uploading
+      const { error: xpError } = await supabase.rpc('award_xp', {
+        target_user_id: user.id,
+        xp_amount: 10,
+        points_type: 'knowledge'
+      });
+      if (xpError) console.error('XP award failed:', xpError);
+
       setProgress(100);
       toast.success('Reel uploaded successfully! 🎉');
       onOpenChange(false);

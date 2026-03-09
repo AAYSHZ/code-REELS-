@@ -218,6 +218,13 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
           setLiked(false);
           setLikesCount((c: number) => Math.max(0, c - 1));
           return;
+        } else {
+          const { error: xpError } = await supabase.rpc('award_xp', {
+            target_user_id: reel.uploaded_by,
+            xp_amount: 2,
+            points_type: 'creator'
+          });
+          if (xpError) console.error('XP award failed:', xpError);
         }
 
         const { error: incErr } = await supabase
@@ -296,6 +303,12 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
     } else {
       await supabase.from('reel_saves').insert({ reel_id: reel.id, user_id: user.id });
       setSaved(true);
+      const { error: xpError } = await supabase.rpc('award_xp', {
+        target_user_id: reel.uploaded_by,
+        xp_amount: 3,
+        points_type: 'creator'
+      });
+      if (xpError) console.error('XP award failed:', xpError);
     }
   };
 
@@ -412,7 +425,7 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
       </div>
 
       <PointsToast points={pointsToast.points} show={pointsToast.show} onDone={() => setPointsToast({ show: false, points: 0 })} />
-      <CommentSection reelId={reel.id} open={showComments} onOpenChange={setShowComments} />
+      <CommentSection reelId={reel.id} reelOwnerId={reel.uploaded_by} open={showComments} onOpenChange={setShowComments} />
       <UploadModal open={showReplyUpload} onOpenChange={setShowReplyUpload} parentReelId={reel.id} />
       <ReelRepostMenu open={showRepostMenu} onOpenChange={setShowRepostMenu} reel={reel} onRepostSuccess={() => setPointsToast({ show: true, points: 4 })} />
     </>

@@ -624,6 +624,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      award_xp: {
+        Args: {
+          target_user_id: string
+          xp_amount: number
+          points_type: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

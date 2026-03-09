@@ -10,11 +10,12 @@ import AnimatedList from './effects/AnimatedList';
 
 interface CommentSectionProps {
   reelId: string;
+  reelOwnerId?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export default function CommentSection({ reelId, open, onOpenChange }: CommentSectionProps) {
+export default function CommentSection({ reelId, reelOwnerId, open, onOpenChange }: CommentSectionProps) {
   const { user } = useAuth();
   const [comments, setComments] = useState<any[]>([]);
   const [text, setText] = useState('');
@@ -52,6 +53,16 @@ export default function CommentSection({ reelId, open, onOpenChange }: CommentSe
     if (data) {
       setComments(prev => [data, ...prev]);
       setText('');
+
+      // Add XP for comment to reel owner
+      if (reelOwnerId && reelOwnerId !== user.id) {
+        const { error: xpError } = await supabase.rpc('award_xp', {
+          target_user_id: reelOwnerId,
+          xp_amount: 3,
+          points_type: 'creator'
+        });
+        if (xpError) console.error('XP award failed:', xpError);
+      }
     }
   };
 
