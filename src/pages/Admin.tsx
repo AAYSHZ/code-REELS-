@@ -99,14 +99,34 @@ export default function Admin() {
   };
 
   const fetchReels = async () => {
-    const { data } = await supabase
+    const { data: reelsData, error: reelsErr } = await supabase
       .from('reels')
-      .select(`
-        *,
-        uploader:profiles!reels_uploaded_by_fkey ( username )
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
-    if (data) setReels(data);
+
+    if (reelsErr) {
+      toast.error('Failed to fetch reels');
+      return;
+    }
+
+    if (reelsData && reelsData.length > 0) {
+      // Fetch uploader profile info in bulk for efficiency
+      const uploaderIds = Array.from(new Set(reelsData.map(r => r.uploaded_by)));
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('user_id, username, name')
+        .in('user_id', uploaderIds);
+
+      // Map usernames back to reels
+      const reelsWithUploaders = reelsData.map(r => ({
+        ...r,
+        uploader: profilesData?.find(p => p.user_id === r.uploaded_by) || null
+      }));
+
+      setReels(reelsWithUploaders);
+    } else {
+      setReels([]);
+    }
   };
 
   // --- Users Actions ---
