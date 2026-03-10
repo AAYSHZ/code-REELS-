@@ -55,6 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .eq('user_id', userId)
       .single();
     if (data) {
+      console.log('AuthContext fetchProfile fetched:', data);
       setProfile({
         ...data,
         skill_points: (data.skill_points as any) || { dsa: 0, webdev: 0, aiml: 0, hardware: 0, other: 0 },

@@ -5,6 +5,7 @@ import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/hooks/useNotifications';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import UploadModal from './UploadModal';
 import NotificationPanel from './NotificationPanel';
 import BlurText from './effects/BlurText';
@@ -19,6 +20,9 @@ export default function Navbar() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
   const { notifications, unreadCount, markAllRead } = useNotifications();
+
+  console.log('Navbar profile data:', profile);
+  console.log('Navbar avatar URL:', profile?.avatar);
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -123,9 +127,12 @@ export default function Navbar() {
               <div className="flex items-center gap-2">
                 <Link to={`/profile/${user.id}`}>
                   <div className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-muted transition-colors">
-                    <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center text-xs font-bold text-foreground">
-                      {profile?.name?.charAt(0)?.toUpperCase() || 'U'}
-                    </div>
+                    <Avatar className="w-8 h-8">
+                      <AvatarImage src={profile?.avatar || undefined} />
+                      <AvatarFallback className="gradient-primary text-xs font-bold text-foreground">
+                        {profile?.name?.charAt(0)?.toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
                     <div className="hidden lg:block">
                       <p className="text-xs font-medium text-foreground">{profile?.name || 'User'}</p>
                       <p className="text-[10px] text-muted-foreground font-mono">Lv.{profile?.level || 1}</p>
