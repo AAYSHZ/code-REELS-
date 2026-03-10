@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Search, Send, MessageSquare, Loader2, MoreVertical, Check, CheckCheck } from 'lucide-react';
+import { ArrowLeft, Search, Send, MessageSquare, Loader2, MoreVertical, Check, CheckCheck, Smile, Reply, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Link } from 'react-router-dom';
@@ -16,8 +16,15 @@ interface Conversation {
     participant_2: string;
     last_message: string | null;
     last_message_at: string;
-    other_user?: { name: string; avatar: string | null; user_id: string };
+    other_user?: { name: string; avatar: string | null; user_id: string; last_seen?: string | null };
     unread_count?: number;
+}
+
+interface Reaction {
+    id: string;
+    message_id: string;
+    user_id: string;
+    emoji: string;
 }
 
 interface Message {
@@ -27,6 +34,11 @@ interface Message {
     content: string;
     is_read: boolean;
     created_at: string;
+    message_reactions?: Reaction[];
+    reply_to_message_id?: string | null;
+    message_type?: string | null;
+    shared_reel_id?: string | null;
+    reels?: { title: string; thumbnail_url: string | null; video_url?: string | null } | null;
 }
 
 interface SearchUser {
@@ -49,6 +61,7 @@ export default function Messages() {
     const [searching, setSearching] = useState(false);
     const [mobileShowChat, setMobileShowChat] = useState(false);
     const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
+    const [replyingTo, setReplyingTo] = useState<Message | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -71,7 +84,7 @@ export default function Messages() {
                 const otherId = c.participant_1 === user.id ? c.participant_2 : c.participant_1;
                 const { data: prof } = await supabase
                     .from('profiles')
-                    .select('user_id, name, avatar')
+                    .select('user_id, name, avatar, last_seen')
                     .eq('user_id', otherId)
                     .single();
 
@@ -83,7 +96,7 @@ export default function Messages() {
                     .eq('is_read', false)
                     .neq('sender_id', user.id);
 
-                return { ...c, other_user: prof || { name: 'User', avatar: null, user_id: otherId }, unread_count: count || 0 };
+                return { ...c, other_user: prof || { name: 'User', avatar: null, user_id: otherId, last_seen: null }, unread_count: count || 0 };
             })
         );
 
@@ -95,10 +108,10 @@ export default function Messages() {
     const fetchMessages = async (convoId: string) => {
         const { data } = await supabase
             .from('dm_messages')
-            .select('*')
+            .select('*, message_reactions(*), reels(title, thumbnail_url, video_url)')
             .eq('conversation_id', convoId)
             .order('created_at', { ascending: true });
-        if (data) setMessages(data as Message[]);
+        if (data) setMessages(data as any);
 
         // Mark messages as read
         if (user) {
@@ -231,12 +244,15 @@ export default function Messages() {
             content,
             is_read: false,
             created_at: new Date().toISOString(),
+            reply_to_message_id: replyingTo?.id || null,
+            message_type: 'text',
         };
         setMessages(prev => [...prev, tempMsg]);
+        setReplyingTo(null);
 
         const { error } = await supabase
             .from('dm_messages')
-            .insert({ conversation_id: activeConvo.id, sender_id: user.id, content });
+            .insert({ conversation_id: activeConvo.id, sender_id: user.id, content, reply_to_message_id: replyingTo?.id || null, message_type: 'text' });
 
         if (error) {
             toast.error('Failed to send message');
@@ -251,6 +267,23 @@ export default function Messages() {
 
         setSending(false);
         inputRef.current?.focus();
+    };
+
+    const toggleReaction = async (messageId: string, emoji: string) => {
+        if (!user) return;
+        const msg = messages.find(m => m.id === messageId);
+        const existing = msg?.message_reactions?.find(r => r.user_id === user.id && r.emoji === emoji);
+
+        if (existing) {
+            // Optimistic update
+            setMessages(prev => prev.map(m => m.id === messageId ? { ...m, message_reactions: m.message_reactions?.filter(r => r.id !== existing.id) } : m));
+            await supabase.from('message_reactions').delete().eq('id', existing.id);
+        } else {
+            // Optimistic update
+            const tempId = crypto.randomUUID();
+            setMessages(prev => prev.map(m => m.id === messageId ? { ...m, message_reactions: [...(m.message_reactions || []), { id: tempId, message_id: messageId, user_id: user.id, emoji }] } : m));
+            await supabase.from('message_reactions').insert({ message_id: messageId, user_id: user.id, emoji });
+        }
     };
 
     // Auto scroll
@@ -302,6 +335,13 @@ export default function Messages() {
             }, (payload) => {
                 const updatedMsg = payload.new as Message;
                 setMessages(prev => prev.map(old => old.id === updatedMsg.id ? updatedMsg : old));
+            })
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'message_reactions',
+            }, () => {
+                fetchMessages(activeConvo.id);
             })
             .on('presence', { event: 'sync' }, () => {
                 const state = channel.presenceState();
@@ -374,6 +414,17 @@ export default function Messages() {
         });
 
         return groups;
+    };
+
+    const formatLastSeen = (dateStr: string | null | undefined) => {
+        if (!dateStr) return 'Offline';
+        const d = new Date(dateStr);
+        const diffMins = Math.floor((new Date().getTime() - d.getTime()) / 60000);
+        if (diffMins < 2) return 'Online';
+        if (diffMins < 60) return `Active ${diffMins}m ago`;
+        const diffHours = Math.floor(diffMins / 60);
+        if (diffHours < 24) return `Active ${diffHours}h ago`;
+        return `Active ${Math.floor(diffHours / 24)}d ago`;
     };
 
     if (!user) return <div className="flex items-center justify-center min-h-screen pt-16 text-muted-foreground">Login to view messages</div>;
@@ -453,6 +504,9 @@ export default function Messages() {
                                                 {c.other_user?.name?.charAt(0)?.toUpperCase() || 'U'}
                                             </AvatarFallback>
                                         </Avatar>
+                                        {formatLastSeen(c.other_user?.last_seen) === 'Online' && (
+                                            <div className="absolute top-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-background shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+                                        )}
                                         {(c.unread_count || 0) > 0 && (
                                             <div className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-primary border-2 border-background" />
                                         )}
@@ -518,8 +572,15 @@ export default function Messages() {
                                     <Link to={`/profile/${activeConvo.other_user?.user_id}`} className="hover:underline">
                                         <p className="text-sm font-semibold text-foreground">{activeConvo.other_user?.name || 'User'}</p>
                                     </Link>
-                                    {typingUsers.has(activeConvo.other_user?.user_id || '') && (
+                                    {typingUsers.has(activeConvo.other_user?.user_id || '') ? (
                                         <p className="text-xs text-primary animate-pulse">typing...</p>
+                                    ) : (
+                                        <div className="flex items-center gap-1.5 mt-0.5">
+                                            {formatLastSeen(activeConvo.other_user?.last_seen) === 'Online' && (
+                                                <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse" />
+                                            )}
+                                            <p className="text-xs text-muted-foreground">{formatLastSeen(activeConvo.other_user?.last_seen)}</p>
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -533,9 +594,11 @@ export default function Messages() {
                                         </div>
                                         {group.messages.map((msg) => {
                                             const isOwn = msg.sender_id === user?.id;
+                                            const quickEmojis = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
+
                                             return (
-                                                <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                                                    <div className="flex items-end gap-2 max-w-[75%]">
+                                                <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'} group relative`}>
+                                                    <div className="flex items-end gap-2 max-w-[75%] relative">
                                                         {!isOwn && (
                                                             <Link to={`/profile/${activeConvo.other_user?.user_id}`}>
                                                                 <Avatar className="w-6 h-6 flex-shrink-0 hover:opacity-80 transition-opacity">
@@ -547,12 +610,40 @@ export default function Messages() {
                                                             </Link>
                                                         )}
                                                         <div
-                                                            className={`px-3.5 py-2 text-sm leading-relaxed ${isOwn
+                                                            className={`px-3.5 py-2 text-sm leading-relaxed relative ${isOwn
                                                                 ? 'bg-[#00FF94] text-black rounded-2xl rounded-br-none'
                                                                 : 'bg-[#1a1a2e] text-white rounded-2xl rounded-bl-none'
                                                                 }`}
                                                         >
-                                                            {msg.content}
+                                                            {msg.reply_to_message_id && (
+                                                                <div className="mb-1 text-xs opacity-75 border-l-2 border-current pl-2 pb-1">
+                                                                    <p className="font-semibold truncate max-w-[200px]">
+                                                                        {messages.find(m => m.id === msg.reply_to_message_id)?.sender_id === user?.id ? 'You' : activeConvo.other_user?.name}
+                                                                    </p>
+                                                                    <p className="truncate max-w-[200px]">{messages.find(m => m.id === msg.reply_to_message_id)?.content || 'Message'}</p>
+                                                                </div>
+                                                            )}
+                                                            {msg.message_type === 'reel' && msg.reels ? (
+                                                                <Link to={`/reel/${msg.shared_reel_id}`} className="block w-40 h-56 rounded-lg overflow-hidden relative mb-1 border border-border/50 shadow-sm group/reel">
+                                                                    {msg.reels.thumbnail_url ? (
+                                                                        <img src={msg.reels.thumbnail_url} alt={msg.reels.title} className="w-full h-full object-cover opacity-90 group-hover/reel:opacity-100 transition-opacity" />
+                                                                    ) : (
+                                                                        <div className="w-full h-full bg-muted/40 flex items-center justify-center">
+                                                                            <span className="text-xs text-muted-foreground font-semibold">Reel Video</span>
+                                                                        </div>
+                                                                    )}
+                                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-2">
+                                                                        <p className="text-white text-xs font-bold truncate">{msg.reels.title}</p>
+                                                                    </div>
+                                                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                                                        <div className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center scale-90 group-hover/reel:scale-100 transition-transform shadow-lg">
+                                                                            <div className="w-0 h-0 border-y-[6px] border-y-transparent border-l-[10px] border-l-white ml-1"></div>
+                                                                        </div>
+                                                                    </div>
+                                                                </Link>
+                                                            ) : (
+                                                                <span>{msg.content}</span>
+                                                            )}
                                                             <div className={`flex items-center gap-1 mt-1 justify-end ${isOwn ? 'text-black/60' : 'text-white/40'}`}>
                                                                 <p className="text-[10px]">{formatMessageTime(msg.created_at)}</p>
                                                                 {isOwn && (
@@ -561,6 +652,55 @@ export default function Messages() {
                                                                     </span>
                                                                 )}
                                                             </div>
+
+                                                            {/* Reactions Display */}
+                                                            {(msg.message_reactions && msg.message_reactions.length > 0) && (
+                                                                <div className={`absolute -bottom-3 ${isOwn ? 'right-2' : 'left-2'} flex items-center gap-1 z-10`}>
+                                                                    {Object.entries(
+                                                                        msg.message_reactions.reduce((acc, r) => {
+                                                                            acc[r.emoji] = (acc[r.emoji] || 0) + 1;
+                                                                            return acc;
+                                                                        }, {} as Record<string, number>)
+                                                                    ).map(([emoji, count]) => (
+                                                                        <button
+                                                                            key={emoji}
+                                                                            onClick={() => toggleReaction(msg.id, emoji)}
+                                                                            className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] border border-border/50 shadow-sm ${msg.message_reactions?.some(r => r.user_id === user?.id && r.emoji === emoji) ? 'bg-primary/20 text-primary-foreground' : 'bg-background text-foreground'}`}
+                                                                        >
+                                                                            <span>{emoji}</span>
+                                                                            {count > 1 && <span>{count}</span>}
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Emoji trigger (appears on hover) */}
+                                                        <div className={`absolute top-1/2 -translate-y-1/2 ${isOwn ? '-left-16' : '-right-16'} opacity-0 group-hover:opacity-100 transition-opacity z-10 flex items-center gap-1`}>
+                                                            <button
+                                                                onClick={() => setReplyingTo(msg)}
+                                                                className="p-1.5 rounded-full bg-background border border-border hover:bg-muted text-muted-foreground transition-colors"
+                                                            >
+                                                                <Reply className="w-4 h-4" />
+                                                            </button>
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger asChild>
+                                                                    <button className="p-1.5 rounded-full bg-background border border-border hover:bg-muted text-muted-foreground transition-colors">
+                                                                        <Smile className="w-4 h-4" />
+                                                                    </button>
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent side="top" align="center" className="flex items-center gap-1 p-1 min-w-0 bg-[#1a1a2e] border-border shrink-0">
+                                                                    {quickEmojis.map(e => (
+                                                                        <button
+                                                                            key={e}
+                                                                            onClick={() => toggleReaction(msg.id, e)}
+                                                                            className="p-1.5 hover:bg-white/10 rounded-md transition-colors text-lg"
+                                                                        >
+                                                                            {e}
+                                                                        </button>
+                                                                    ))}
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -572,28 +712,41 @@ export default function Messages() {
                             </div>
 
                             {/* Input */}
-                            <div className="p-3 border-t border-border">
-                                <form
-                                    onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-                                    className="flex items-center gap-2"
-                                >
-                                    <Input
-                                        ref={inputRef}
-                                        value={newMsg}
-                                        onChange={(e) => setNewMsg(e.target.value)}
-                                        placeholder="Type a message..."
-                                        className="flex-1 glass border-border"
-                                        autoFocus
-                                    />
-                                    <Button
-                                        type="submit"
-                                        size="icon"
-                                        disabled={sending || !newMsg.trim()}
-                                        className="gradient-primary glow-primary flex-shrink-0"
+                            <div className="flex flex-col border-t border-border mt-auto">
+                                {replyingTo && (
+                                    <div className="flex items-center justify-between px-4 py-2 bg-muted/20 text-sm border-b border-border/50">
+                                        <div className="border-l-2 border-primary pl-2 overflow-hidden">
+                                            <p className="text-primary text-xs font-semibold">{replyingTo.sender_id === user?.id ? 'You' : activeConvo?.other_user?.name}</p>
+                                            <p className="text-muted-foreground truncate text-xs">{replyingTo.content}</p>
+                                        </div>
+                                        <button onClick={() => setReplyingTo(null)} className="p-1.5 hover:bg-muted rounded-full text-muted-foreground transition-colors">
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                )}
+                                <div className="p-3">
+                                    <form
+                                        onSubmit={(e) => { e.preventDefault(); handleSend(); }}
+                                        className="flex items-center gap-2"
                                     >
-                                        <Send className="w-4 h-4" />
-                                    </Button>
-                                </form>
+                                        <Input
+                                            ref={inputRef}
+                                            value={newMsg}
+                                            onChange={(e) => setNewMsg(e.target.value)}
+                                            placeholder="Type a message..."
+                                            className="flex-1 glass border-border"
+                                            autoFocus
+                                        />
+                                        <Button
+                                            type="submit"
+                                            size="icon"
+                                            disabled={sending || !newMsg.trim()}
+                                            className="gradient-primary glow-primary flex-shrink-0"
+                                        >
+                                            <Send className="w-4 h-4" />
+                                        </Button>
+                                    </form>
+                                </div>
                             </div>
                         </>
                     ) : (

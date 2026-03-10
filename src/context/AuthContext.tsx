@@ -94,6 +94,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Online status heartbeat
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    if (user) {
+      // Set initial online status
+      supabase.from('profiles').update({ last_seen: new Date().toISOString() }).eq('user_id', user.id).then();
+
+      // Update every 30 seconds
+      interval = setInterval(() => {
+        supabase.from('profiles').update({ last_seen: new Date().toISOString() }).eq('user_id', user.id).then();
+      }, 30000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [user]);
+
   const signUp = async (email: string, password: string, name: string) => {
     const { error } = await supabase.auth.signUp({
       email,

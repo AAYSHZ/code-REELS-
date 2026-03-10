@@ -11,6 +11,7 @@ import UploadModal from './UploadModal';
 import { Link } from 'react-router-dom';
 import ReelOptionsMenu from './ReelOptionsMenu';
 import ReelRepostMenu from './ReelRepostMenu';
+import ShareReelModal from './ShareReelModal';
 import ClickSpark from './effects/ClickSpark';
 import GlitchText from './effects/GlitchText';
 import ShinyText from './effects/ShinyText';
@@ -31,6 +32,7 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
   const [showComments, setShowComments] = useState(false);
   const [showReplyUpload, setShowReplyUpload] = useState(false);
   const [showRepostMenu, setShowRepostMenu] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [pointsToast, setPointsToast] = useState({ show: false, points: 0 });
   const [heartAnim, setHeartAnim] = useState(false);
   const watchTracked = useRef(false);
@@ -252,10 +254,8 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
     }
   };
 
-  const handleShare = async () => {
-    await supabase.from('reels').update({ shares_count: reel.shares_count + 1 }).eq('id', reel.id);
-    navigator.clipboard.writeText(`${window.location.origin}/reel/${reel.id}`);
-    setPointsToast({ show: true, points: 4 });
+  const handleShare = () => {
+    setShowShareModal(true);
   };
 
   // Difficulty label component
@@ -368,6 +368,15 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
       <CommentSection reelId={reel.id} reelOwnerId={reel.uploaded_by} open={showComments} onOpenChange={setShowComments} />
       <UploadModal open={showReplyUpload} onOpenChange={setShowReplyUpload} parentReelId={reel.id} />
       <ReelRepostMenu open={showRepostMenu} onOpenChange={setShowRepostMenu} reel={reel} onRepostSuccess={() => setPointsToast({ show: true, points: 4 })} />
+      <ShareReelModal
+        open={showShareModal}
+        onOpenChange={setShowShareModal}
+        reelId={reel.id}
+        onShareComplete={async () => {
+          await supabase.from('reels').update({ shares_count: reel.shares_count + 1 }).eq('id', reel.id);
+          setPointsToast({ show: true, points: 4 });
+        }}
+      />
     </>
   );
 }
