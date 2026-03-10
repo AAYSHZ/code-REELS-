@@ -8,17 +8,7 @@ export default function SplashScreen() {
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5 }}
-            style={{
-                position: 'fixed',
-                inset: 0,
-                zIndex: 9999,
-                backgroundColor: '#0A0A0A',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '2rem',
-            }}
+            className="fixed inset-0 z-[9999] bg-[#0A0A0A] flex flex-col items-center justify-center gap-8 w-screen h-[100dvh]"
         >
             <BlurText
                 text="CodeReels"

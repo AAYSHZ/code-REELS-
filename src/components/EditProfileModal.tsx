@@ -25,11 +25,11 @@ export default function EditProfileModal({ open, onOpenChange, profile, onUpdate
   const coverInputRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(profile?.avatar || null);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | Blob | null>(null);
   const [avatarDeleted, setAvatarDeleted] = useState(false);
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(profile?.cover_photo || null);
-  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverFile, setCoverFile] = useState<File | Blob | null>(null);
   const [coverDeleted, setCoverDeleted] = useState(false);
   const [newTag, setNewTag] = useState('');
   const [form, setForm] = useState({
@@ -52,8 +52,7 @@ export default function EditProfileModal({ open, onOpenChange, profile, onUpdate
   };
 
   const handleCropComplete = (blob: Blob) => {
-    const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
-    setAvatarFile(file);
+    setAvatarFile(blob);
     setAvatarPreview(URL.createObjectURL(blob));
     setAvatarDeleted(false);
     setCropSrc(null);
@@ -93,11 +92,16 @@ export default function EditProfileModal({ open, onOpenChange, profile, onUpdate
     setForm({ ...form, skill_tags: form.skill_tags.filter((_, i) => i !== idx) });
   };
 
-  const uploadFile = async (bucket: string, path: string, file: File) => {
+  const uploadFile = async (bucket: string, path: string, file: File | Blob) => {
     const { error } = await supabase.storage.from(bucket).upload(path, file, { upsert: true });
     if (error) {
+      console.error(`Storage upload error for bucket ${bucket}:`, error);
       await supabase.storage.createBucket(bucket, { public: true });
-      await supabase.storage.from(bucket).upload(path, file, { upsert: true });
+      const retry = await supabase.storage.from(bucket).upload(path, file, { upsert: true });
+      if (retry.error) {
+        console.error(`Retry upload failed for bucket ${bucket}:`, retry.error);
+        throw retry.error;
+      }
     }
     const { data } = supabase.storage.from(bucket).getPublicUrl(path);
     return data.publicUrl + `?t=${Date.now()}`;
@@ -112,30 +116,11 @@ export default function EditProfileModal({ open, onOpenChange, profile, onUpdate
 
     setSaving(true);
     try {
-      let avatarUrl = profile?.avatar;
-      let coverUrl = profile?.cover_photo;
-
-      if (avatarDeleted) {
-        avatarUrl = null;
-        // Try to remove old file
-        await supabase.storage.from('avatars').remove([`avatars/${user.id}.jpg`, `avatars/${user.id}.png`, `avatars/${user.id}.jpeg`]);
-      } else if (avatarFile) {
-        avatarUrl = await uploadFile('avatars', `avatars/${user.id}.jpg`, avatarFile);
-      }
-
-      if (coverDeleted) {
-        coverUrl = null;
-        await supabase.storage.from('avatars').remove([`covers/${user.id}.jpg`]);
-      } else if (coverFile) {
-        coverUrl = await uploadFile('avatars', `covers/${user.id}.jpg`, coverFile);
-      }
-
+      // 1. Update text fields FIRST
       const { error } = await supabase.from('profiles').update({
         name: form.name.trim(),
         username: form.username.trim() || null,
         bio: form.bio.trim() || null,
-        avatar: avatarUrl,
-        cover_photo: coverUrl,
         github_url: form.github_url.trim() || null,
         linkedin_url: form.linkedin_url.trim() || null,
         portfolio_url: form.portfolio_url.trim() || null,
@@ -144,16 +129,58 @@ export default function EditProfileModal({ open, onOpenChange, profile, onUpdate
       }).eq('user_id', user.id);
 
       if (error) {
+        console.error("Failed to update profile text fields:", error);
         if (error.message.includes('username')) toast.error('Username is already taken');
-        else toast.error('Failed to update profile');
+        else toast.error(`Failed to update profile: ${error.message}`);
         return;
+      }
+
+      // 2. Handle Image Uploads
+      let avatarUrl = profile?.avatar;
+      let coverUrl = profile?.cover_photo;
+      let imagesUpdated = false;
+
+      try {
+        if (avatarDeleted) {
+          avatarUrl = null;
+          imagesUpdated = true;
+          await supabase.storage.from('avatars').remove([`avatars/${user.id}.jpg`, `avatars/${user.id}.png`, `avatars/${user.id}.jpeg`]);
+        } else if (avatarFile) {
+          avatarUrl = await uploadFile('avatars', `avatars/${user.id}.jpg`, avatarFile);
+          imagesUpdated = true;
+        }
+
+        if (coverDeleted) {
+          coverUrl = null;
+          imagesUpdated = true;
+          await supabase.storage.from('avatars').remove([`covers/${user.id}.jpg`]);
+        } else if (coverFile) {
+          coverUrl = await uploadFile('avatars', `covers/${user.id}.jpg`, coverFile);
+          imagesUpdated = true;
+        }
+
+        if (imagesUpdated) {
+          const { error: finalError } = await supabase.from('profiles').update({
+            avatar: avatarUrl,
+            cover_photo: coverUrl,
+          }).eq('user_id', user.id);
+
+          if (finalError) {
+            console.error("Failed to link updated images to profile:", finalError);
+            toast.error(`Text saved, but image linking failed: ${finalError.message}`);
+          }
+        }
+      } catch (uploadError: any) {
+        console.error("Image upload failed:", uploadError);
+        toast.error(`Profile saved, but image upload failed: ${uploadError?.message || 'Unknown error'}`);
       }
 
       toast.success('Profile updated!');
       onUpdated();
       onOpenChange(false);
-    } catch (err) {
-      toast.error('Something went wrong');
+    } catch (err: any) {
+      console.error("Unexpected error in handleSave:", err);
+      toast.error(`Something went wrong: ${err?.message || 'Unknown error'}`);
     } finally {
       setSaving(false);
     }
@@ -253,7 +280,7 @@ export default function EditProfileModal({ open, onOpenChange, profile, onUpdate
             </div>
             {form.skill_tags.length < 8 && (
               <div className="flex gap-2">
-                <Input value={newTag} onChange={(e) => setNewTag(e.target.value)} placeholder="e.g. React Expert" maxLength={20} className="glass border-border text-xs flex-1" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); }}} />
+                <Input value={newTag} onChange={(e) => setNewTag(e.target.value)} placeholder="e.g. React Expert" maxLength={20} className="glass border-border text-xs flex-1" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }} />
                 <Button type="button" variant="outline" size="sm" className="glass border-border" onClick={addTag}><Plus className="w-3.5 h-3.5" /></Button>
               </div>
             )}
