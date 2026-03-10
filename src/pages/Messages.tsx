@@ -4,8 +4,11 @@ import { useAuth } from '@/context/AuthContext';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Search, Send, MessageSquare, Loader2 } from 'lucide-react';
+import { ArrowLeft, Search, Send, MessageSquare, Loader2, MoreVertical, Check, CheckCheck } from 'lucide-react';
 import { toast } from 'sonner';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Link } from 'react-router-dom';
+import codereelsLogo from '@/assets/codereels-logo.png';
 
 interface Conversation {
     id: string;
@@ -45,8 +48,10 @@ export default function Messages() {
     const [searchResults, setSearchResults] = useState<SearchUser[]>([]);
     const [searching, setSearching] = useState(false);
     const [mobileShowChat, setMobileShowChat] = useState(false);
+    const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // Fetch conversations
     const fetchConversations = async () => {
@@ -175,6 +180,42 @@ export default function Messages() {
         await fetchMessages(convo.id);
     };
 
+    const deleteConversation = async (convoId: string, e: React.MouseEvent) => {
+        e.stopPropagation(); // prevent clicking the conversation container row
+
+        if (!confirm('Are you sure you want to delete this conversation? This cannot be undone.')) return;
+
+        const { error } = await supabase
+            .from('conversations')
+            .delete()
+            .eq('id', convoId);
+
+        if (error) {
+            toast.error('Failed to delete conversation');
+        } else {
+            toast.success('Conversation deleted');
+            if (activeConvo?.id === convoId) {
+                setActiveConvo(null);
+                setMobileShowChat(false);
+            }
+            setConversations(prev => prev.filter(c => c.id !== convoId));
+        }
+    };
+
+    const handleTyping = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setNewMsg(e.target.value);
+        if (!activeConvo || !user) return;
+
+        // Broadcast typing status
+        const channel = supabase.channel(`dm-${activeConvo.id}`);
+        channel.track({ typing: true, user_id: user.id });
+
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = setTimeout(() => {
+            channel.track({ typing: false, user_id: user.id });
+        }, 2000);
+    };
+
     // Send message
     const handleSend = async () => {
         if (!user || !activeConvo || !newMsg.trim()) return;
@@ -245,15 +286,45 @@ export default function Messages() {
                     return [...filtered, newMessage];
                 });
 
-                // Mark as read if from other user
+                // Mark as read if from other user and chat is active
                 if (user && newMessage.sender_id !== user.id) {
-                    supabase.from('dm_messages').update({ is_read: true }).eq('id', newMessage.id).then(() => { });
+                    supabase.from('dm_messages').update({ is_read: true }).eq('id', newMessage.id).then(() => {
+                        // Immediately update local state to reflect it's read so it doesn't stay unseen during stream.
+                        setMessages(curr => curr.map(m => m.id === newMessage.id ? { ...m, is_read: true } : m));
+                    });
                 }
             })
-            .subscribe();
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'dm_messages',
+                filter: `conversation_id=eq.${activeConvo.id}`,
+            }, (payload) => {
+                const updatedMsg = payload.new as Message;
+                setMessages(prev => prev.map(old => old.id === updatedMsg.id ? updatedMsg : old));
+            })
+            .on('presence', { event: 'sync' }, () => {
+                const state = channel.presenceState();
+                const typing = new Set<string>();
+                for (const key in state) {
+                    // check if the state is true for typing event
+                    if ((state[key][0] as any)?.typing && (state[key][0] as any)?.user_id) {
+                        typing.add((state[key][0] as any).user_id);
+                    }
+                }
+                setTypingUsers(typing);
+            })
+            .subscribe(async (status) => {
+                if (status === 'SUBSCRIBED' && user) {
+                    await channel.track({ typing: false, user_id: user.id });
+                }
+            });
 
-        return () => { supabase.removeChannel(channel); };
-    }, [activeConvo?.id]);
+        return () => {
+            if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+            supabase.removeChannel(channel);
+        };
+    }, [activeConvo?.id, user]);
 
     // Realtime for conversation list updates
     useEffect(() => {
@@ -283,6 +354,26 @@ export default function Messages() {
         const diffDays = Math.floor(diffHours / 24);
         if (diffDays < 7) return `${diffDays}d`;
         return d.toLocaleDateString();
+    };
+
+    const formatMessageTime = (dateStr: string) => {
+        return new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    };
+
+    const groupMessagesByDate = (msgs: Message[]) => {
+        const groups: { date: string, messages: Message[] }[] = [];
+        let currentDate = '';
+
+        msgs.forEach(msg => {
+            const date = new Date(msg.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+            if (date !== currentDate) {
+                currentDate = date;
+                groups.push({ date, messages: [] });
+            }
+            groups[groups.length - 1].messages.push(msg);
+        });
+
+        return groups;
     };
 
     if (!user) return <div className="flex items-center justify-center min-h-screen pt-16 text-muted-foreground">Login to view messages</div>;
@@ -376,6 +467,26 @@ export default function Messages() {
                                         <p className={`text-xs truncate mt-0.5 ${(c.unread_count || 0) > 0 ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
                                             {c.last_message || 'Start chatting...'}
                                         </p>
+
+                                        {/* Inline Sent/Seen tag beneath the last message preview, checking if unread is 0 means it's considered seen by them if we were the last ones adding... actually simpler to just display general UI seen status */}
+                                    </div>
+
+                                    <div className="ml-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="w-8 h-8 rounded-full opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity">
+                                                    <MoreVertical className="w-4 h-4 text-muted-foreground" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end" className="w-48 bg-[#1a1a2e] border-border text-foreground">
+                                                <DropdownMenuItem
+                                                    onClick={(e) => deleteConversation(c.id, e as unknown as React.MouseEvent)}
+                                                    className="text-red-500 focus:bg-red-500/10 focus:text-red-500 cursor-pointer"
+                                                >
+                                                    Delete Conversation
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </div>
                                 </button>
                             ))
@@ -395,47 +506,68 @@ export default function Messages() {
                                 >
                                     <ArrowLeft className="w-5 h-5 text-foreground" />
                                 </button>
-                                <Avatar className="w-9 h-9">
-                                    <AvatarImage src={activeConvo.other_user?.avatar || undefined} />
-                                    <AvatarFallback className="gradient-primary text-sm font-bold text-foreground">
-                                        {activeConvo.other_user?.name?.charAt(0)?.toUpperCase() || 'U'}
-                                    </AvatarFallback>
-                                </Avatar>
+                                <Link to={`/profile/${activeConvo.other_user?.user_id}`} className="hover:opacity-80 transition-opacity">
+                                    <Avatar className="w-9 h-9">
+                                        <AvatarImage src={activeConvo.other_user?.avatar || undefined} />
+                                        <AvatarFallback className="gradient-primary text-sm font-bold text-foreground">
+                                            {activeConvo.other_user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                </Link>
                                 <div>
-                                    <p className="text-sm font-semibold text-foreground">{activeConvo.other_user?.name || 'User'}</p>
+                                    <Link to={`/profile/${activeConvo.other_user?.user_id}`} className="hover:underline">
+                                        <p className="text-sm font-semibold text-foreground">{activeConvo.other_user?.name || 'User'}</p>
+                                    </Link>
+                                    {typingUsers.has(activeConvo.other_user?.user_id || '') && (
+                                        <p className="text-xs text-primary animate-pulse">typing...</p>
+                                    )}
                                 </div>
                             </div>
 
                             {/* Messages */}
-                            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-                                {messages.map((msg) => {
-                                    const isOwn = msg.sender_id === user?.id;
-                                    return (
-                                        <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                                            <div className="flex items-end gap-2 max-w-[75%]">
-                                                {!isOwn && (
-                                                    <Avatar className="w-6 h-6 flex-shrink-0">
-                                                        <AvatarImage src={activeConvo.other_user?.avatar || undefined} />
-                                                        <AvatarFallback className="gradient-primary text-[10px] font-bold text-foreground">
-                                                            {activeConvo.other_user?.name?.charAt(0)?.toUpperCase() || 'U'}
-                                                        </AvatarFallback>
-                                                    </Avatar>
-                                                )}
-                                                <div
-                                                    className={`px-3.5 py-2 text-sm leading-relaxed ${isOwn
-                                                            ? 'bg-[#00FF94] text-black rounded-2xl rounded-br-none'
-                                                            : 'bg-[#1a1a2e] text-white rounded-2xl rounded-bl-none'
-                                                        }`}
-                                                >
-                                                    {msg.content}
-                                                    <p className={`text-[10px] mt-1 ${isOwn ? 'text-black/40' : 'text-white/40'}`}>
-                                                        {formatTime(msg.created_at)}
-                                                    </p>
-                                                </div>
-                                            </div>
+                            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+                                {groupMessagesByDate(messages).map((group) => (
+                                    <div key={group.date} className="space-y-3">
+                                        <div className="flex justify-center my-4">
+                                            <span className="text-[10px] uppercase font-bold text-muted-foreground/60 bg-muted/20 px-3 py-1 rounded-full">{group.date}</span>
                                         </div>
-                                    );
-                                })}
+                                        {group.messages.map((msg) => {
+                                            const isOwn = msg.sender_id === user?.id;
+                                            return (
+                                                <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                                                    <div className="flex items-end gap-2 max-w-[75%]">
+                                                        {!isOwn && (
+                                                            <Link to={`/profile/${activeConvo.other_user?.user_id}`}>
+                                                                <Avatar className="w-6 h-6 flex-shrink-0 hover:opacity-80 transition-opacity">
+                                                                    <AvatarImage src={activeConvo.other_user?.avatar || undefined} />
+                                                                    <AvatarFallback className="gradient-primary text-[10px] font-bold text-foreground">
+                                                                        {activeConvo.other_user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                                                                    </AvatarFallback>
+                                                                </Avatar>
+                                                            </Link>
+                                                        )}
+                                                        <div
+                                                            className={`px-3.5 py-2 text-sm leading-relaxed ${isOwn
+                                                                ? 'bg-[#00FF94] text-black rounded-2xl rounded-br-none'
+                                                                : 'bg-[#1a1a2e] text-white rounded-2xl rounded-bl-none'
+                                                                }`}
+                                                        >
+                                                            {msg.content}
+                                                            <div className={`flex items-center gap-1 mt-1 justify-end ${isOwn ? 'text-black/60' : 'text-white/40'}`}>
+                                                                <p className="text-[10px]">{formatMessageTime(msg.created_at)}</p>
+                                                                {isOwn && (
+                                                                    <span className="ml-1">
+                                                                        {msg.is_read ? <CheckCheck className="w-3 h-3 text-emerald-700" /> : <Check className="w-3 h-3" />}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                ))}
                                 <div ref={messagesEndRef} />
                             </div>
 
@@ -466,9 +598,11 @@ export default function Messages() {
                         </>
                     ) : (
                         <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
-                            <MessageSquare className="w-16 h-16 text-muted-foreground/20 mb-4" />
-                            <h3 className="text-lg font-semibold text-foreground mb-1">Your Messages</h3>
-                            <p className="text-sm text-muted-foreground">Select a conversation or search for a user to start chatting</p>
+                            <div className="w-24 h-24 mb-6 rounded-full bg-muted/20 flex items-center justify-center overflow-hidden border-2 border-border/50">
+                                <img src={codereelsLogo} alt="CodeReels Logo" className="w-16 h-16 opacity-50 grayscale object-contain" />
+                            </div>
+                            <h3 className="text-xl font-bold text-foreground mb-2 tracking-tight">Your Messages</h3>
+                            <p className="text-sm text-muted-foreground max-w-[250px]">Select an existing conversation or search for a user to start a new chat seamlessly.</p>
                         </div>
                     )}
                 </div>
