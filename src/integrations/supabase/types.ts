@@ -206,6 +206,8 @@ export type Database = {
           reply_to_message_id: string | null
           sender_id: string
           shared_reel_id: string | null
+          image_url: string | null
+          is_pinned: boolean
         }
         Insert: {
           content: string
@@ -217,6 +219,8 @@ export type Database = {
           reply_to_message_id?: string | null
           sender_id: string
           shared_reel_id?: string | null
+          image_url?: string | null
+          is_pinned?: boolean
         }
         Update: {
           content?: string
@@ -228,6 +232,8 @@ export type Database = {
           reply_to_message_id?: string | null
           sender_id?: string
           shared_reel_id?: string | null
+          image_url?: string | null
+          is_pinned?: boolean
         }
         Relationships: [
           {

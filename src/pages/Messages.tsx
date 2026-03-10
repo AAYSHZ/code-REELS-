@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Search, Send, MessageSquare, Loader2, MoreVertical, Check, CheckCheck, Smile, Reply, X } from 'lucide-react';
+import { ArrowLeft, Search, Send, MessageSquare, Loader2, MoreVertical, Check, CheckCheck, Smile, Reply, X, Mic, Square, Play, Pause, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Link } from 'react-router-dom';
@@ -38,6 +38,8 @@ interface Message {
     reply_to_message_id?: string | null;
     message_type?: string | null;
     shared_reel_id?: string | null;
+    image_url?: string | null;
+    is_pinned?: boolean;
     reels?: { title: string; thumbnail_url: string | null; video_url?: string | null } | null;
 }
 
@@ -65,6 +67,153 @@ export default function Messages() {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const imageInputRef = useRef<HTMLInputElement>(null);
+
+    // Message search state
+    const [isSearchingMsg, setIsSearchingMsg] = useState(false);
+    const [msgSearchQuery, setMsgSearchQuery] = useState('');
+    const [msgSearchMatches, setMsgSearchMatches] = useState<number[]>([]);
+    const [msgSearchIndex, setMsgSearchIndex] = useState(0);
+
+    // Audio recording state
+    const [isRecording, setIsRecording] = useState(false);
+    const [recordingDuration, setRecordingDuration] = useState(0);
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const audioChunksRef = useRef<Blob[]>([]);
+    const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+    const formatDuration = (seconds: number) => {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m}:${s.toString().padStart(2, '0')}`;
+    };
+
+    const startRecording = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const mediaRecorder = new MediaRecorder(stream);
+            mediaRecorderRef.current = mediaRecorder;
+            audioChunksRef.current = [];
+
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) audioChunksRef.current.push(e.data);
+            };
+
+            mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                stream.getTracks().forEach(track => track.stop());
+                await uploadAudio(audioBlob);
+            };
+
+            mediaRecorder.start();
+            setIsRecording(true);
+            setRecordingDuration(0);
+            recordingIntervalRef.current = setInterval(() => {
+                setRecordingDuration(prev => prev + 1);
+            }, 1000);
+        } catch (err) {
+            console.error("Error accessing microphone:", err);
+            toast.error("Microphone access denied or unavailable.");
+        }
+    };
+
+    const stopRecording = () => {
+        if (mediaRecorderRef.current && isRecording) {
+            mediaRecorderRef.current.stop();
+            setIsRecording(false);
+            if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
+        }
+    };
+
+    const uploadAudio = async (blob: Blob) => {
+        if (!user || !activeConvo) return;
+        const fileName = `${user.id}-${Date.now()}.webm`;
+
+        try {
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('dm-audio')
+                .upload(fileName, blob, { contentType: 'audio/webm' });
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('dm-audio')
+                .getPublicUrl(fileName);
+
+            const msgPayload = {
+                conversation_id: activeConvo.id,
+                sender_id: user.id,
+                content: 'Voice message',
+                message_type: 'voice',
+                image_url: publicUrl,
+                reply_to_message_id: replyingTo?.id || null,
+            };
+
+            const tempId = crypto.randomUUID();
+            const tempMsg: Message = { ...msgPayload, id: tempId, created_at: new Date().toISOString(), is_read: false } as Message;
+            setMessages(prev => [...prev, tempMsg]);
+
+            const { error: dbError } = await supabase.from('dm_messages').insert(msgPayload);
+            if (dbError) throw dbError;
+
+            await supabase.from('conversations').update({ last_message: '🎤 Voice message', last_message_at: new Date().toISOString() }).eq('id', activeConvo.id);
+            setReplyingTo(null);
+
+        } catch (err: any) {
+            console.error("Upload audio error:", err);
+            toast.error("Failed to send voice message");
+        }
+    };
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !user || !activeConvo) return;
+        if (!file.type.startsWith('image/')) {
+            toast.error('Only image files are allowed');
+            return;
+        }
+
+        const fileName = `${user.id}-${Date.now()}-${file.name}`;
+        setSending(true);
+
+        try {
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('dm-images')
+                .upload(fileName, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('dm-images')
+                .getPublicUrl(fileName);
+
+            const msgPayload = {
+                conversation_id: activeConvo.id,
+                sender_id: user.id,
+                content: 'Image',
+                message_type: 'image',
+                image_url: publicUrl,
+                reply_to_message_id: replyingTo?.id || null,
+            };
+
+            const tempId = crypto.randomUUID();
+            const tempMsg: Message = { ...msgPayload, id: tempId, created_at: new Date().toISOString(), is_read: false } as Message;
+            setMessages(prev => [...prev, tempMsg]);
+
+            const { error: dbError } = await supabase.from('dm_messages').insert(msgPayload);
+            if (dbError) throw dbError;
+
+            await supabase.from('conversations').update({ last_message: '📸 Image', last_message_at: new Date().toISOString() }).eq('id', activeConvo.id);
+            setReplyingTo(null);
+
+        } catch (err: any) {
+            console.error("Upload image error:", err);
+            toast.error("Failed to send image");
+        } finally {
+            setSending(false);
+            if (imageInputRef.current) imageInputRef.current.value = '';
+        }
+    };
 
     // Fetch conversations
     const fetchConversations = async () => {
@@ -284,6 +433,95 @@ export default function Messages() {
             setMessages(prev => prev.map(m => m.id === messageId ? { ...m, message_reactions: [...(m.message_reactions || []), { id: tempId, message_id: messageId, user_id: user.id, emoji }] } : m));
             await supabase.from('message_reactions').insert({ message_id: messageId, user_id: user.id, emoji });
         }
+    };
+
+    const togglePin = async (msg: Message) => {
+        if (!user) return;
+        const newPinnedStatus = !msg.is_pinned;
+
+        // Optimistic update
+        setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, is_pinned: newPinnedStatus } : (newPinnedStatus ? { ...m, is_pinned: false } : m)));
+
+        // If pinning, unpin others in this convo first
+        if (newPinnedStatus) {
+            await supabase.from('dm_messages')
+                .update({ is_pinned: false })
+                .eq('conversation_id', activeConvo?.id);
+        }
+
+        const { error } = await supabase.from('dm_messages')
+            .update({ is_pinned: newPinnedStatus })
+            .eq('id', msg.id);
+
+        if (error) {
+            console.error("Pin toggle error:", error);
+            // Revert on error
+            fetchMessages(activeConvo!.id);
+        }
+    };
+
+    // Message Search Handlers
+    useEffect(() => {
+        if (!msgSearchQuery.trim()) {
+            setMsgSearchMatches([]);
+            setMsgSearchIndex(0);
+            return;
+        }
+
+        const q = msgSearchQuery.toLowerCase();
+        const matches: number[] = [];
+        messages.forEach((msg, idx) => {
+            if (msg.content && msg.content.toLowerCase().includes(q)) {
+                matches.push(idx);
+            }
+        });
+
+        setMsgSearchMatches(matches);
+        if (matches.length > 0) {
+            setMsgSearchIndex(matches.length - 1); // Start with latest match
+            scrollToMatch(matches[matches.length - 1]);
+        } else {
+            setMsgSearchIndex(0);
+        }
+    }, [msgSearchQuery, messages]);
+
+    const scrollToMatch = (idx: number) => {
+        const msgId = messages[idx]?.id;
+        if (msgId) {
+            const el = document.getElementById(`msg-${msgId}`);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.classList.add('bg-primary/20');
+                setTimeout(() => el.classList.remove('bg-primary/20'), 1500);
+            }
+        }
+    };
+
+    const nextMatch = () => {
+        if (msgSearchMatches.length === 0) return;
+        const newIdx = msgSearchIndex < msgSearchMatches.length - 1 ? msgSearchIndex + 1 : 0;
+        setMsgSearchIndex(newIdx);
+        scrollToMatch(msgSearchMatches[newIdx]);
+    };
+
+    const prevMatch = () => {
+        if (msgSearchMatches.length === 0) return;
+        const newIdx = msgSearchIndex > 0 ? msgSearchIndex - 1 : msgSearchMatches.length - 1;
+        setMsgSearchIndex(newIdx);
+        scrollToMatch(msgSearchMatches[newIdx]);
+    };
+
+    const highlightText = (text: string) => {
+        if (!msgSearchQuery.trim()) return text;
+
+        const regex = new RegExp(`(${msgSearchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        const parts = text.split(regex);
+
+        return parts.map((part, i) =>
+            regex.test(part) ? (
+                <mark key={i} className="bg-yellow-400/90 text-black px-0.5 rounded-sm">{part}</mark>
+            ) : part
+        );
     };
 
     // Auto scroll
@@ -585,6 +823,44 @@ export default function Messages() {
                                 </div>
                             </div>
 
+                            {/* Pinned Message Banner */}
+                            {(() => {
+                                const pinnedMsg = messages.find(m => m.is_pinned);
+                                if (!pinnedMsg) return null;
+                                return (
+                                    <div
+                                        className="bg-muted/40 border-b border-border/50 px-4 py-2 flex items-center justify-between cursor-pointer hover:bg-muted/60 transition-colors"
+                                        onClick={() => {
+                                            const el = document.getElementById(`msg-${pinnedMsg.id}`);
+                                            if (el) {
+                                                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                                el.classList.add('bg-primary/20');
+                                                setTimeout(() => el.classList.remove('bg-primary/20'), 1500);
+                                            }
+                                        }}
+                                    >
+                                        <div className="flex items-center gap-2 overflow-hidden">
+                                            <span className="text-primary mt-0.5">📌</span>
+                                            <div>
+                                                <p className="text-[10px] font-bold text-primary uppercase tracker-wider">Pinned Message</p>
+                                                <p className="text-xs text-muted-foreground truncate w-[250px] md:w-[400px]">
+                                                    {pinnedMsg.message_type === 'voice' ? '🎤 Voice message' :
+                                                        pinnedMsg.message_type === 'image' ? '📸 Image' :
+                                                            pinnedMsg.message_type === 'reel' ? '🎬 Reel' :
+                                                                pinnedMsg.content}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); togglePin(pinnedMsg); }}
+                                            className="p-1 hover:bg-muted text-muted-foreground rounded-full"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                );
+                            })()}
+
                             {/* Messages */}
                             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
                                 {groupMessagesByDate(messages).map((group) => (
@@ -597,7 +873,7 @@ export default function Messages() {
                                             const quickEmojis = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
 
                                             return (
-                                                <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'} group relative`}>
+                                                <div key={msg.id} id={`msg-${msg.id}`} className={`flex ${isOwn ? 'justify-end' : 'justify-start'} group relative transition-all duration-500`}>
                                                     <div className="flex items-end gap-2 max-w-[75%] relative">
                                                         {!isOwn && (
                                                             <Link to={`/profile/${activeConvo.other_user?.user_id}`}>
@@ -641,8 +917,19 @@ export default function Messages() {
                                                                         </div>
                                                                     </div>
                                                                 </Link>
+                                                            ) : msg.message_type === 'voice' && msg.image_url ? (
+                                                                <div className="flex flex-col gap-1 min-w-[200px]">
+                                                                    <audio src={msg.image_url} controls className="w-full h-10 opacity-90 invert hue-rotate-180 brightness-75 contrast-200" />
+                                                                </div>
+                                                            ) : msg.message_type === 'image' && msg.image_url ? (
+                                                                <img
+                                                                    src={msg.image_url}
+                                                                    alt="Shared image"
+                                                                    className="max-w-[200px] md:max-w-[300px] rounded-lg object-cover cursor-pointer hover:opacity-95 transition-opacity"
+                                                                    onClick={() => window.open(msg.image_url!, '_blank')}
+                                                                />
                                                             ) : (
-                                                                <span>{msg.content}</span>
+                                                                <span className="whitespace-pre-wrap word-break">{highlightText(msg.content)}</span>
                                                             )}
                                                             <div className={`flex items-center gap-1 mt-1 justify-end ${isOwn ? 'text-black/60' : 'text-white/40'}`}>
                                                                 <p className="text-[10px]">{formatMessageTime(msg.created_at)}</p>
@@ -675,14 +962,28 @@ export default function Messages() {
                                                             )}
                                                         </div>
 
-                                                        {/* Emoji trigger (appears on hover) */}
-                                                        <div className={`absolute top-1/2 -translate-y-1/2 ${isOwn ? '-left-16' : '-right-16'} opacity-0 group-hover:opacity-100 transition-opacity z-10 flex items-center gap-1`}>
+                                                        {/* Emoji & More options (appears on hover) */}
+                                                        <div className={`absolute top-1/2 -translate-y-1/2 ${isOwn ? '-left-24' : '-right-24'} opacity-0 group-hover:opacity-100 transition-opacity z-10 flex items-center gap-1`}>
                                                             <button
                                                                 onClick={() => setReplyingTo(msg)}
                                                                 className="p-1.5 rounded-full bg-background border border-border hover:bg-muted text-muted-foreground transition-colors"
                                                             >
                                                                 <Reply className="w-4 h-4" />
                                                             </button>
+
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger asChild>
+                                                                    <button className="p-1.5 rounded-full bg-background border border-border hover:bg-muted text-muted-foreground transition-colors">
+                                                                        <MoreVertical className="w-4 h-4" />
+                                                                    </button>
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent side="top" align="center" className="bg-[#1a1a2e] border-border shrink-0 min-w-[120px]">
+                                                                    <DropdownMenuItem onClick={() => togglePin(msg)} className="cursor-pointer">
+                                                                        {msg.is_pinned ? 'Unpin Message' : 'Pin Message'}
+                                                                    </DropdownMenuItem>
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
+
                                                             <DropdownMenu>
                                                                 <DropdownMenuTrigger asChild>
                                                                     <button className="p-1.5 rounded-full bg-background border border-border hover:bg-muted text-muted-foreground transition-colors">
@@ -729,21 +1030,60 @@ export default function Messages() {
                                         onSubmit={(e) => { e.preventDefault(); handleSend(); }}
                                         className="flex items-center gap-2"
                                     >
-                                        <Input
-                                            ref={inputRef}
-                                            value={newMsg}
-                                            onChange={(e) => setNewMsg(e.target.value)}
-                                            placeholder="Type a message..."
-                                            className="flex-1 glass border-border"
-                                            autoFocus
+                                        {isRecording ? (
+                                            <div className="flex-1 flex items-center gap-4 px-4 py-2 glass border-border rounded-md text-red-500 font-semibold animate-pulse">
+                                                <Mic className="w-4 h-4" />
+                                                <span>Recording {formatDuration(recordingDuration)}</span>
+                                                <div className="flex gap-1 h-3 ml-auto items-center">
+                                                    <span className="w-1 h-full bg-red-500 animate-[bounce_1s_infinite]"></span>
+                                                    <span className="w-1 h-full bg-red-500 animate-[bounce_1.2s_infinite]"></span>
+                                                    <span className="w-1 h-full bg-red-500 animate-[bounce_0.8s_infinite]"></span>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <Input
+                                                ref={inputRef}
+                                                value={newMsg}
+                                                onChange={(e) => setNewMsg(e.target.value)}
+                                                placeholder="Type a message..."
+                                                className="flex-1 glass border-border"
+                                                autoFocus
+                                            />
+                                        )}
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            variant="ghost"
+                                            className="rounded-full flex-shrink-0 hover:bg-muted text-muted-foreground transition-colors"
+                                            onClick={() => imageInputRef.current?.click()}
+                                        >
+                                            <ImageIcon className="w-5 h-5 text-current" />
+                                        </Button>
+                                        <input
+                                            type="file"
+                                            ref={imageInputRef}
+                                            onChange={handleImageUpload}
+                                            accept="image/*"
+                                            className="hidden"
                                         />
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            variant="ghost"
+                                            className={`rounded-full flex-shrink-0 transition-colors ${isRecording ? 'text-red-500 bg-red-500/20' : 'hover:bg-muted text-muted-foreground'}`}
+                                            onPointerDown={startRecording}
+                                            onPointerUp={stopRecording}
+                                            onPointerLeave={stopRecording}
+                                        >
+                                            {isRecording ? <Square className="w-5 h-5 fill-current" /> : <Mic className="w-5 h-5 text-current" />}
+                                        </Button>
                                         <Button
                                             type="submit"
                                             size="icon"
-                                            disabled={sending || !newMsg.trim()}
-                                            className="gradient-primary glow-primary flex-shrink-0"
+                                            disabled={sending || (!newMsg.trim() && !isRecording)}
+                                            className="gradient-primary glow-primary flex-shrink-0 rounded-full"
                                         >
-                                            <Send className="w-4 h-4" />
+                                            <Send className="w-4 h-4 ml-1" />
                                         </Button>
                                     </form>
                                 </div>
@@ -760,6 +1100,6 @@ export default function Messages() {
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 }
