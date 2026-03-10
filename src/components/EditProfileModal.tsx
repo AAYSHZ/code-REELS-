@@ -20,7 +20,7 @@ interface EditProfileModalProps {
 }
 
 export default function EditProfileModal({ open, onOpenChange, profile, onUpdated }: EditProfileModalProps) {
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
@@ -116,8 +116,7 @@ export default function EditProfileModal({ open, onOpenChange, profile, onUpdate
 
     setSaving(true);
     try {
-      // 1. Update text fields FIRST
-      const { error } = await supabase.from('profiles').update({
+      const updateData = {
         name: form.name.trim(),
         username: form.username.trim() || null,
         bio: form.bio.trim() || null,
@@ -126,13 +125,20 @@ export default function EditProfileModal({ open, onOpenChange, profile, onUpdate
         portfolio_url: form.portfolio_url.trim() || null,
         open_to_collab: form.open_to_collab,
         skill_tags: form.skill_tags,
-      }).eq('user_id', user.id);
+      };
+
+      console.log('Saving profile data:', updateData);
+
+      // 1. Update text fields FIRST
+      const { data, error } = await supabase.from('profiles').update(updateData).eq('user_id', user.id).select();
+
+      console.log('Update result:', data, error);
 
       if (error) {
         console.error("Failed to update profile text fields:", error);
         if (error.message.includes('username')) toast.error('Username is already taken');
         else toast.error(`Failed to update profile: ${error.message}`);
-        return;
+        throw error;
       }
 
       // 2. Handle Image Uploads
@@ -176,6 +182,7 @@ export default function EditProfileModal({ open, onOpenChange, profile, onUpdate
       }
 
       toast.success('Profile updated!');
+      await refreshProfile();
       onUpdated();
       onOpenChange(false);
     } catch (err: any) {
