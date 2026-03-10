@@ -18,6 +18,7 @@ import Rewards from "@/pages/Rewards";
 import SearchPage from "@/pages/Search";
 import ReelDetail from "@/pages/ReelDetail";
 import Admin from "@/pages/Admin";
+import Messages from "@/pages/Messages";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -80,6 +81,7 @@ const AppContent = () => {
             <Route path="/search" element={<SearchPage />} />
             <Route path="/reel/:reelId" element={<ReelDetail />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/messages" element={<Messages />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>

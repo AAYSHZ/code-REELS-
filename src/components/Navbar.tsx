@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Search, PlusCircle, Trophy, Zap, Bell, User, LogOut, ShieldCheck } from 'lucide-react';
+import { Home, Search, PlusCircle, Trophy, Zap, Bell, User, LogOut, ShieldCheck, MessageSquare } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { useNotifications } from '@/hooks/useNotifications';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -20,15 +21,33 @@ export default function Navbar() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
   const { notifications, unreadCount, markAllRead } = useNotifications();
+  const [unreadDMs, setUnreadDMs] = useState(0);
 
   console.log('Navbar profile data:', profile);
   console.log('Navbar avatar URL:', profile?.avatar);
+
+  // Fetch unread DM count
+  useEffect(() => {
+    if (!user) return;
+    const fetchUnreadDMs = async () => {
+      const { count } = await supabase
+        .from('dm_messages' as any)
+        .select('*', { count: 'exact', head: true })
+        .eq('is_read', false)
+        .neq('sender_id', user.id);
+      setUnreadDMs(count || 0);
+    };
+    fetchUnreadDMs();
+    const interval = setInterval(fetchUnreadDMs, 15000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   const isActive = (path: string) => location.pathname === path;
 
   const navItems = [
     { path: '/', icon: Home, label: 'Home' },
     { path: '/search', icon: Search, label: 'Search' },
+    { path: '/messages', icon: MessageSquare, label: 'Messages' },
     { path: '/leaderboard', icon: Trophy, label: 'Board' },
     { path: '/challenges', icon: Zap, label: 'Challenges' },
   ];
@@ -70,10 +89,18 @@ export default function Navbar() {
                 <Button
                   variant={isActive(path) ? 'default' : 'ghost'}
                   size="sm"
-                  className={`gap-2 transition-all ${isActive(path) ? 'gradient-primary glow-primary' : ''}`}
+                  className={`gap-2 transition-all relative ${isActive(path) ? 'gradient-primary glow-primary' : ''}`}
                 >
                   <Icon className="w-4 h-4" />
                   <span className="hidden lg:inline">{label}</span>
+                  {label === 'Messages' && unreadDMs > 0 && (
+                    <span
+                      className="absolute -top-1 -right-1 flex items-center justify-center rounded-full bg-primary text-black font-bold"
+                      style={{ width: '16px', height: '16px', fontSize: '9px' }}
+                    >
+                      {unreadDMs > 9 ? '9+' : unreadDMs}
+                    </span>
+                  )}
                 </Button>
               </Link>
             ))}
