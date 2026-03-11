@@ -7,6 +7,7 @@ import { AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthProvider } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
+import HelpButton from "@/components/HelpButton";
 import BlobCursor from "@/components/effects/BlobCursor";
 import SplashScreen from "@/components/SplashScreen";
 import Home from "@/pages/Home";
@@ -67,6 +68,7 @@ const AppContent = () => {
         <div className="dark">
           <BlobCursor color="#6c63ff" />
           <Navbar />
+          <HelpButton />
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/home" element={<Home />} />
