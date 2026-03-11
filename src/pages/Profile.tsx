@@ -147,7 +147,8 @@ export default function Profile() {
         {/* Header */}
         <div className="flex items-end gap-4 mb-2">
           <div className="relative w-24 h-24 flex-shrink-0">
-            <div className="absolute inset-0 rounded-full overflow-hidden border-4 border-background shadow-xl">
+            <CircularText text={badgeText} radius={48} />
+            <div className="absolute inset-3 rounded-full overflow-hidden border-4 border-background shadow-xl">
               <Avatar className="w-full h-full">
                 <AvatarImage src={profile.avatar || undefined} />
                 <AvatarFallback className="gradient-primary text-2xl font-bold text-foreground w-full h-full">
