@@ -10,7 +10,9 @@ export default function SkillRadarChart({ skillPoints }: SkillRadarChartProps) {
     { subject: 'Web Dev', value: skillPoints.webdev || 0, fullMark: 1000 },
     { subject: 'AI-ML', value: skillPoints.aiml || 0, fullMark: 1000 },
     { subject: 'Hardware', value: skillPoints.hardware || 0, fullMark: 1000 },
-    { subject: 'Coding', value: skillPoints.coding_problems || 0, fullMark: 1000 },
+    { subject: 'Debugging', value: skillPoints.debugging || 0, fullMark: 1000 },
+    { subject: 'Roadmaps', value: skillPoints.roadmaps || 0, fullMark: 1000 },
+    { subject: 'Coding', value: skillPoints.coding || 0, fullMark: 1000 },
     { subject: 'Other', value: skillPoints.other || 0, fullMark: 1000 },
   ];
 

@@ -42,7 +42,7 @@ export default function Profile() {
     if (p) {
       setProfile({
         ...p,
-        skill_points: (p.skill_points as any) || { dsa: 0, webdev: 0, aiml: 0, hardware: 0, other: 0, coding_problems: 0, learning_roadmaps: 0, troubleshooting: 0 },
+        skill_points: (p.skill_points as any) || { dsa: 0, webdev: 0, aiml: 0, hardware: 0, debugging: 0, roadmaps: 0, coding: 0, other: 0 },
       });
       // Fetch pinned reel
       if (p.pinned_reel_id) {
