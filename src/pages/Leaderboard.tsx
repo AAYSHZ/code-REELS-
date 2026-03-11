@@ -54,7 +54,7 @@ export default function Leaderboard() {
           <h1 className="text-2xl font-bold">
             <SplitText text="Leaderboard" className="gradient-text" />
           </h1>
-          <span className="text-xs font-mono text-muted-foreground glass px-3 py-1 rounded-full">
+          <span className="text-xs font-mono text-muted-foreground bg-[#1A1A1A] border border-white/10 px-3 py-1 rounded-full">
             Resets in {daysLeft}d
           </span>
         </div>
@@ -87,31 +87,39 @@ export default function Leaderboard() {
               {loading ? (
                 <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>
               ) : (
-                <div className="space-y-2">
-                  {users.map((u, i) => (
-                    <TiltedCard key={u.id} tiltAmount={5}>
-                      <Link to={`/profile/${u.user_id}`} className="flex items-center gap-3 glass rounded-xl p-3 hover:border-primary/30 transition-colors">
-                        <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${i === 0 ? 'bg-warning/20 text-warning' :
-                            i === 1 ? 'bg-muted text-foreground' :
-                              i === 2 ? 'bg-orange-800/20 text-orange-400' :
-                                'bg-muted/30 text-muted-foreground'
-                          }`}>
-                          {i + 1}
+                <div className="space-y-0 divide-y divide-white/5">
+                  {users.map((u, i) => {
+                    const badge = u.current_badge || 'Newcomer';
+                    let badgeColor = 'bg-gray-800 text-gray-300 border-gray-700';
+                    if (badge === 'Coder') badgeColor = 'bg-[#2ED573]/20 text-[#2ED573] border-[#2ED573]/30';
+                    if (badge === 'Debugger') badgeColor = 'bg-[#FFA502]/20 text-[#FFA502] border-[#FFA502]/30';
+                    if (badge === 'Architect') badgeColor = 'bg-[#6C63FF]/20 text-[#6C63FF] border-[#6C63FF]/30';
+                    if (badge === 'Code Master') badgeColor = 'bg-gradient-to-r from-[#FFD700]/20 to-[#FFA502]/20 text-[#FFD700] border-[#FFD700]/30';
+
+                    return (
+                      <Link key={u.id} to={`/profile/${u.user_id}`} className="flex items-center gap-3 p-3 hover:bg-white/5 transition-colors">
+                        <span className={`w-8 font-bold text-center ${i === 0 ? 'text-[#FFD700]' : i === 1 ? 'text-[#C0C0C0]' : i === 2 ? 'text-[#CD7F32]' : 'text-gray-500'}`}>
+                          #{i + 1}
                         </span>
-                        <div className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center text-sm font-bold text-foreground">
+                        <div className="w-10 h-10 flex-shrink-0 rounded-full bg-gradient-to-tr from-[#6C63FF] to-[#00D4AA] flex items-center justify-center text-sm font-bold text-foreground">
                           {u.name?.charAt(0)?.toUpperCase() || 'U'}
                         </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-foreground">{u.name}</p>
-                          <p className="text-[10px] font-mono text-primary">Lv.{u.level}</p>
+                        <div className="flex-1 flex flex-col items-start overflow-hidden">
+                          <div className="flex items-center gap-2 w-full">
+                            <p className="text-sm font-medium text-foreground truncate">{u.name}</p>
+                            <span className={`flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold border ${badgeColor}`}>
+                              {badge}
+                            </span>
+                          </div>
+                          <p className="text-[10px] font-mono text-[#6C63FF] mt-0.5">Lv.{u.level || 1}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-bold text-secondary"><CountUp end={u[t.sort] || 0} duration={1.5} /></p>
-                          <p className="text-[10px] text-muted-foreground">pts</p>
+                          <p className="text-sm font-bold text-foreground"><CountUp end={u[t.sort] || 0} duration={1.5} /></p>
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">XP</p>
                         </div>
                       </Link>
-                    </TiltedCard>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </TabsContent>

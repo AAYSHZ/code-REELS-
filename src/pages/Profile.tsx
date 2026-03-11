@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { useFollow } from '@/hooks/useFollow';
 import { Progress } from '@/components/ui/progress';
-import { Flame, Coins, Star, Shield, Crown, Settings, Github, Linkedin, Globe, Eye, UserPlus, Check, Handshake, Pin, Repeat2, Trash2 } from 'lucide-react';
+import { Flame, Coins, Star, Shield, Crown, Settings, Github, Linkedin, Globe, Eye, UserPlus, Check, Handshake, Pin, Repeat2, Trash2, Trophy } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -147,8 +147,7 @@ export default function Profile() {
         {/* Header */}
         <div className="flex items-end gap-4 mb-2">
           <div className="relative w-24 h-24 flex-shrink-0">
-            <CircularText text={badgeText} radius={48} />
-            <div className="absolute inset-3 rounded-full overflow-hidden border-4 border-background">
+            <div className="absolute inset-0 rounded-full overflow-hidden border-4 border-background shadow-xl">
               <Avatar className="w-full h-full">
                 <AvatarImage src={profile.avatar || undefined} />
                 <AvatarFallback className="gradient-primary text-2xl font-bold text-foreground w-full h-full">
@@ -173,9 +172,21 @@ export default function Profile() {
             {profile.username && (
               <p className="text-xs text-muted-foreground font-mono">@{profile.username}</p>
             )}
-            <div className="flex items-center gap-2 mt-1">
-              <span className="px-2 py-0.5 rounded-full text-xs font-mono gradient-primary text-foreground">Lv.<CountUp end={currentLevel} duration={1} /></span>
-              <GradientText text={profile.current_badge || 'Newcomer'} className="text-xs font-semibold" />
+            <div className="flex items-center gap-2 mt-2">
+              {(() => {
+                const badge = profile.current_badge || 'Newcomer';
+                let badgeColor = 'bg-gray-800 text-gray-300 border-gray-700';
+                if (badge === 'Coder') badgeColor = 'bg-[#2ED573]/20 text-[#2ED573] border-[#2ED573]/30';
+                if (badge === 'Debugger') badgeColor = 'bg-[#FFA502]/20 text-[#FFA502] border-[#FFA502]/30';
+                if (badge === 'Architect') badgeColor = 'bg-[#6C63FF]/20 text-[#6C63FF] border-[#6C63FF]/30';
+                if (badge === 'Code Master') badgeColor = 'bg-gradient-to-r from-[#FFD700]/20 to-[#FFA502]/20 text-[#FFD700] border-[#FFD700]/30';
+
+                return (
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${badgeColor}`}>
+                    {badge}
+                  </span>
+                );
+              })()}
             </div>
           </div>
         </div>
@@ -251,15 +262,18 @@ export default function Profile() {
         </div>
 
         {/* XP Bar */}
-        <div className="glass rounded-xl p-4 mb-4">
-          <div className="flex justify-between text-xs mb-2">
-            <span className="text-muted-foreground">XP: <CountUp end={currentXp} duration={1.5} /></span>
-            <span className="text-muted-foreground">Next: {xpForNextLevel.toLocaleString()}</span>
+        <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-4 mb-4">
+          <div className="flex justify-between items-end mb-2">
+            <div>
+              <p className="text-sm font-bold text-foreground">XP: {currentXp} / {xpForNextLevel}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Level {currentLevel} — {profile.current_badge || 'Newcomer'}</p>
+            </div>
+            <span className="text-xs font-medium text-[#6C63FF]">{Math.max(0, xpForNextLevel - currentXp)} XP to Level {currentLevel + 1}</span>
           </div>
-          <div className="h-3 w-full bg-secondary/20 rounded-full overflow-hidden">
+          <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden shadow-[0_0_8px_#6C63FF]">
             <motion.div
-              className="h-full bg-primary"
-              style={{ backgroundImage: 'linear-gradient(to right, var(--tw-gradient-stops))' }}
+              className="h-full"
+              style={{ backgroundImage: 'linear-gradient(to right, #6C63FF, #00D4AA)' }}
               initial={{ width: 0 }}
               animate={{ width: `${progressPercentage}%` }}
               transition={{ duration: 1, ease: 'easeOut' }}
@@ -269,59 +283,83 @@ export default function Profile() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-4 gap-3 mb-4">
-          <div className="glass rounded-xl p-3 text-center">
-            <Star className="w-4 h-4 text-primary mx-auto mb-1" />
+          <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-3 text-center">
+            <Trophy className="w-4 h-4 text-foreground mx-auto mb-1" />
             <p className="text-lg font-bold text-foreground"><CountUp end={totalScore} duration={2} /></p>
-            <p className="text-[10px] text-muted-foreground">Total</p>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total</p>
           </div>
-          <div className="glass rounded-xl p-3 text-center">
-            <Coins className="w-4 h-4 text-warning mx-auto mb-1" />
+          <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-3 text-center">
+            <Coins className="w-4 h-4 text-foreground mx-auto mb-1" />
             <p className="text-lg font-bold text-foreground"><CountUp end={profile.coins} duration={2} /></p>
-            <p className="text-[10px] text-muted-foreground">Coins</p>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Coins</p>
           </div>
-          <div className="glass rounded-xl p-3 text-center">
-            <Flame className="w-4 h-4 text-destructive mx-auto mb-1 animate-flame" />
-            <p className="text-lg font-bold text-foreground"><CountUp end={profile.streak_count} duration={1} /></p>
-            <p className="text-[10px] text-muted-foreground">Streak</p>
+          <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-3 text-center">
+            <Flame
+              className={`w-4 h-4 mx-auto mb-1 ${(profile.streak_count || 0) > 0 ? 'text-[#FF4757]' : 'text-gray-500'}`}
+              style={(profile.streak_count || 0) > 0 ? { filter: 'drop-shadow(0 0 8px rgba(255,71,87,0.5))' } : {}}
+            />
+            <p className={`text-lg font-bold ${(profile.streak_count || 0) > 0 ? 'text-[#FF4757]' : 'text-gray-500'}`}>
+              <CountUp end={profile.streak_count || 0} duration={1} />
+            </p>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              {(profile.streak_count || 0) > 0 ? 'Streak' : 'No Streak'}
+            </p>
           </div>
-          <div className="glass rounded-xl p-3 text-center">
-            <Repeat2 className="w-4 h-4 text-secondary mx-auto mb-1" />
+          <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-3 text-center">
+            <Repeat2 className="w-4 h-4 text-foreground mx-auto mb-1" />
             <p className="text-lg font-bold text-foreground"><CountUp end={reposts.length} duration={1} /></p>
-            <p className="text-[10px] text-muted-foreground">Reposts</p>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Reposts</p>
           </div>
         </div>
 
         {/* Points Breakdown */}
         <div className="grid grid-cols-3 gap-3 mb-6">
-          <div className="glass rounded-xl p-3 text-center">
-            <p className="text-sm font-bold text-secondary"><CountUp end={profile.creator_points} /></p>
-            <p className="text-[10px] text-muted-foreground">Creator</p>
+          <div className="bg-[#1A1A1A] border border-white/5 border-l-4 border-l-[#6C63FF] rounded-xl p-3">
+            <p className="text-xl font-bold text-foreground"><CountUp end={profile.creator_points} /></p>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Creator</p>
+            <div className="h-0.5 w-full bg-white/5 rounded-full overflow-hidden">
+              <div className="h-full bg-[#6C63FF]" style={{ width: '100%' }} />
+            </div>
           </div>
-          <div className="glass rounded-xl p-3 text-center">
-            <p className="text-sm font-bold text-primary"><CountUp end={profile.helper_points} /></p>
-            <p className="text-[10px] text-muted-foreground">Helper</p>
+          <div className="bg-[#1A1A1A] border border-white/5 border-l-4 border-l-[#00D4AA] rounded-xl p-3">
+            <p className="text-xl font-bold text-foreground"><CountUp end={profile.helper_points} /></p>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Helper</p>
+            <div className="h-0.5 w-full bg-white/5 rounded-full overflow-hidden">
+              <div className="h-full bg-[#00D4AA]" style={{ width: '100%' }} />
+            </div>
           </div>
-          <div className="glass rounded-xl p-3 text-center">
-            <p className="text-sm font-bold text-warning"><CountUp end={profile.knowledge_points} /></p>
-            <p className="text-[10px] text-muted-foreground">Knowledge</p>
+          <div className="bg-[#1A1A1A] border border-white/5 border-l-4 border-l-[#FFA502] rounded-xl p-3">
+            <p className="text-xl font-bold text-foreground"><CountUp end={profile.knowledge_points} /></p>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Knowledge</p>
+            <div className="h-0.5 w-full bg-white/5 rounded-full overflow-hidden">
+              <div className="h-full bg-[#FFA502]" style={{ width: '100%' }} />
+            </div>
           </div>
         </div>
 
         {/* Skill Chart */}
-        <div className="glass rounded-xl p-4 mb-6">
-          <h3 className="text-sm font-semibold text-foreground mb-2">Skill Distribution</h3>
+        <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-4 mb-6">
+          <h3 className="text-sm font-semibold text-foreground mb-4 uppercase tracking-wider">Skill Distribution</h3>
           <SkillRadarChart skillPoints={profile.skill_points} />
         </div>
 
         {/* Badges */}
-        <div className="glass rounded-xl p-4 mb-6">
-          <h3 className="text-sm font-semibold text-foreground mb-3">Badges</h3>
+        <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-4 mb-6">
+          <h3 className="text-sm font-semibold text-foreground mb-4 uppercase tracking-wider">Badges</h3>
           <div className="flex flex-wrap gap-2">
-            {(profile.badges || []).map((badge: string, i: number) => (
-              <span key={i} className="px-3 py-1 rounded-full text-xs font-medium gradient-primary text-foreground">
-                {badge}
-              </span>
-            ))}
+            {(profile.badges || []).map((badge: string, i: number) => {
+              let badgeColor = 'bg-gray-800 text-gray-300 border-gray-700';
+              if (badge === 'Coder') badgeColor = 'bg-[#2ED573]/20 text-[#2ED573] border-[#2ED573]/30';
+              if (badge === 'Debugger') badgeColor = 'bg-[#FFA502]/20 text-[#FFA502] border-[#FFA502]/30';
+              if (badge === 'Architect') badgeColor = 'bg-[#6C63FF]/20 text-[#6C63FF] border-[#6C63FF]/30';
+              if (badge === 'Code Master') badgeColor = 'bg-gradient-to-r from-[#FFD700]/20 to-[#FFA502]/20 text-[#FFD700] border-[#FFD700]/30';
+
+              return (
+                <span key={i} className={`px-3 py-1 rounded-full text-xs font-bold border ${badgeColor}`}>
+                  {badge}
+                </span>
+              );
+            })}
           </div>
         </div>
 

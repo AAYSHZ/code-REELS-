@@ -10,10 +10,8 @@ export default function SkillRadarChart({ skillPoints }: SkillRadarChartProps) {
     { subject: 'Web Dev', value: skillPoints.webdev || 0, fullMark: 1000 },
     { subject: 'AI-ML', value: skillPoints.aiml || 0, fullMark: 1000 },
     { subject: 'Hardware', value: skillPoints.hardware || 0, fullMark: 1000 },
-    { subject: 'Other', value: skillPoints.other || 0, fullMark: 1000 },
     { subject: 'Coding', value: skillPoints.coding_problems || 0, fullMark: 1000 },
-    { subject: 'Roadmaps', value: skillPoints.learning_roadmaps || 0, fullMark: 1000 },
-    { subject: 'Debugging', value: skillPoints.troubleshooting || 0, fullMark: 1000 },
+    { subject: 'Other', value: skillPoints.other || 0, fullMark: 1000 },
   ];
 
   return (
@@ -25,8 +23,8 @@ export default function SkillRadarChart({ skillPoints }: SkillRadarChartProps) {
         <Radar
           name="Skills"
           dataKey="value"
-          stroke="hsl(165 100% 42%)"
-          fill="hsl(165 100% 42%)"
+          stroke="#6C63FF"
+          fill="#6C63FF"
           fillOpacity={0.2}
           strokeWidth={2}
         />

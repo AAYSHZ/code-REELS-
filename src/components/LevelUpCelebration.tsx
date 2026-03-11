@@ -1,17 +1,52 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useEffect } from 'react';
-import Bounce from './effects/Bounce';
+import { useEffect, useRef } from 'react';
+import confetti from 'canvas-confetti';
 
 interface LevelUpProps {
   level: number;
+  badge?: string | null;
   show: boolean;
   onDone: () => void;
 }
 
-export default function LevelUpCelebration({ level, show, onDone }: LevelUpProps) {
+export default function LevelUpCelebration({ level, badge, show, onDone }: LevelUpProps) {
+  const hasTriggered = useRef(false);
+
   useEffect(() => {
     if (show) {
-      const timer = setTimeout(onDone, 3000);
+      if (!hasTriggered.current) {
+        hasTriggered.current = true;
+
+        const duration = 2000;
+        const end = Date.now() + duration;
+
+        const frame = () => {
+          confetti({
+            particleCount: 5,
+            angle: 60,
+            spread: 55,
+            origin: { x: 0 },
+            colors: ['#6C63FF', '#00D4AA']
+          });
+          confetti({
+            particleCount: 5,
+            angle: 120,
+            spread: 55,
+            origin: { x: 1 },
+            colors: ['#6C63FF', '#00D4AA']
+          });
+
+          if (Date.now() < end) {
+            requestAnimationFrame(frame);
+          }
+        };
+        frame();
+      }
+
+      const timer = setTimeout(() => {
+        hasTriggered.current = false;
+        onDone();
+      }, 2000);
       return () => clearTimeout(timer);
     }
   }, [show, onDone]);
@@ -23,24 +58,28 @@ export default function LevelUpCelebration({ level, show, onDone }: LevelUpProps
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm"
+          transition={{ duration: 0.3 }}
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0A0A0A]/90 backdrop-blur-md"
         >
-          <Bounce>
-            <div className="text-center">
-              <motion.div
-                animate={{ rotate: [0, 10, -10, 0] }}
-                transition={{ repeat: Infinity, duration: 0.5 }}
-                className="text-6xl mb-4"
-              >
-                🎉
-              </motion.div>
-              <h1 className="text-4xl font-bold gradient-text mb-4">Level Up!</h1>
-              <div className="w-24 h-24 rounded-full gradient-primary glow-primary flex items-center justify-center mx-auto mb-4">
-                <span className="text-3xl font-bold text-foreground">{level}</span>
-              </div>
-              <p className="text-muted-foreground">Keep going! 🔥</p>
-            </div>
-          </Bounce>
+          <motion.div
+            initial={{ scale: 0.8, y: 20 }}
+            animate={{ scale: 1, y: 0 }}
+            exit={{ scale: 0.9, y: -20 }}
+            transition={{ type: "spring", damping: 20, stiffness: 300 }}
+            className="text-center"
+          >
+            <h1 className="text-5xl font-extrabold mb-6 bg-gradient-to-r from-[#6C63FF] to-[#00D4AA] text-transparent bg-clip-text">
+              LEVEL UP
+            </h1>
+            <p className="text-xl text-white/80 font-medium mb-2">
+              You reached Level {level}
+            </p>
+            {badge && (
+              <p className="text-sm font-mono text-[#00D4AA] mt-3">
+                New Badge: {badge}
+              </p>
+            )}
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>

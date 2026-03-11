@@ -14,7 +14,7 @@ interface ReelOptionsMenuProps {
 }
 
 export default function ReelOptionsMenu({ reelId, reelOwnerId, videoUrl, thumbnailUrl, onDeleted }: ReelOptionsMenuProps) {
-    const { user, profile } = useAuth();
+    const { user, profile, refreshProfile } = useAuth();
     const [showSheet, setShowSheet] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
     const [deleting, setDeleting] = useState(false);
@@ -65,7 +65,13 @@ export default function ReelOptionsMenu({ reelId, reelOwnerId, videoUrl, thumbna
             await supabase.from('reels').delete().eq('id', reelId);
 
             // 8. Callback + toast + close
-            toast.success('Reel deleted');
+            refreshProfile();
+            toast.custom((t) => (
+                <div className="bg-[#1A1A1A] border border-white/10 border-l-4 border-l-red-500 rounded-lg p-4 flex flex-col gap-0.5 shadow-xl min-w-[250px]">
+                    <span className="text-lg font-bold text-red-500">-10 XP</span>
+                    <span className="text-xs text-gray-400">Reel Removed</span>
+                </div>
+            ), { position: 'bottom-right', duration: 3000 });
             setShowConfirm(false);
             setShowSheet(false);
             onDeleted();

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Search, PlusCircle, Trophy, Zap, Bell, User, LogOut, ShieldCheck, MessageSquare } from 'lucide-react';
+import { Home, Search, PlusCircle, Trophy, Zap, Bell, User, LogOut, ShieldCheck, MessageSquare, Flame } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -118,6 +118,19 @@ export default function Navbar() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Streak Display */}
+            {user && (
+              <div
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full border border-white/10 bg-[#1A1A1A] cursor-help transition-colors mr-1"
+                title={`${profile?.streak_count || 0} day streak — upload daily to keep it`}
+              >
+                <Flame className={`w-4 h-4 ${(profile?.streak_count || 0) > 0 ? 'text-[#FF4757]' : 'text-gray-500'}`} style={(profile?.streak_count || 0) > 0 ? { filter: 'drop-shadow(0 0 8px rgba(255,71,87,0.5))' } : {}} />
+                <span className={`text-sm font-bold ${(profile?.streak_count || 0) > 0 ? 'text-[#FF4757]' : 'text-gray-500'}`}>
+                  {profile?.streak_count || 0}
+                </span>
+              </div>
+            )}
+
             {/* Bell Icon with Notification Panel */}
             {user && (
               <div className="relative">

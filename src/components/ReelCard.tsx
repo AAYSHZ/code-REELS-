@@ -181,7 +181,12 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
         setTimeout(() => setHeartAnim(false), 600);
 
         // Bottom right toast
-        toast.success("+2 XP", { position: 'bottom-right' });
+        toast.custom((t) => (
+          <div className="bg-[#1A1A1A] border-l-4 border-[#6C63FF] rounded-lg p-3 flex flex-col gap-0.5 shadow-xl min-w-[200px]">
+            <span className="text-lg font-bold text-[#6C63FF]">+2 XP</span>
+            <span className="text-xs text-gray-400">Creator Points</span>
+          </div>
+        ), { position: 'bottom-right', duration: 2000 });
 
         const { error: likeErr } = await supabase
           .from('reel_likes')
