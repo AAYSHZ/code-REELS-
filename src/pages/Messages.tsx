@@ -731,11 +731,11 @@ export default function Messages() {
                         {/* Search results dropdown */}
                         {searchResults.length > 0 && (
                             <div className="mt-2 glass border border-border rounded-lg max-h-48 overflow-y-auto">
-                                {searchResults.map((u) => (
-                                    <button
+                                    <div
                                         key={u.user_id}
+                                        role="button"
                                         onClick={() => startConversation(u.user_id)}
-                                        className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted/50 transition-colors text-left"
+                                        className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted/50 transition-colors text-left cursor-pointer"
                                     >
                                         <Avatar className="w-8 h-8">
                                             <AvatarImage src={u.avatar || undefined} />
@@ -747,7 +747,7 @@ export default function Messages() {
                                             <p className="text-sm font-medium text-foreground">{u.name}</p>
                                             {u.username && <p className="text-xs text-muted-foreground">@{u.username}</p>}
                                         </div>
-                                    </button>
+                                    </div>
                                 ))}
                             </div>
                         )}
@@ -768,10 +768,11 @@ export default function Messages() {
                             </div>
                         ) : (
                             conversations.map((c) => (
-                                <button
+                                <div
                                     key={c.id}
+                                    role="button"
                                     onClick={() => openConversation(c)}
-                                    className={`w-full flex items-center gap-3 px-4 py-3 transition-colors text-left border-b border-border/50 ${activeConvo?.id === c.id ? 'bg-primary/10' : 'hover:bg-muted/30'
+                                    className={`w-full flex items-center gap-3 px-4 py-3 transition-colors text-left border-b border-border/50 cursor-pointer ${activeConvo?.id === c.id ? 'bg-primary/10' : 'hover:bg-muted/30'
                                         }`}
                                 >
                                     <div className="relative">
@@ -819,7 +820,7 @@ export default function Messages() {
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </div>
-                                </button>
+                                </div>
                             ))
                         )}
                     </div>
