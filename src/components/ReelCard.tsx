@@ -215,7 +215,7 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
     <>
       <div
         ref={containerRef}
-        className="relative w-full h-[100dvh] sm:h-auto sm:aspect-[9/16] snap-start flex items-center justify-center max-w-[420px] mx-auto sm:rounded-2xl sm:shadow-2xl sm:shadow-black/50 overflow-hidden bg-black sm:my-8"
+        className="relative w-full h-[100dvh] snap-start snap-always flex items-center justify-center sm:rounded-2xl overflow-hidden bg-black"
       >
         <video
           ref={videoRef}
@@ -223,7 +223,7 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
           loop
           muted={isMuted}
           playsInline
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover rounded-none"
           onClick={() => {
             const v = videoRef.current;
             if (v) v.paused ? v.play() : v.pause();

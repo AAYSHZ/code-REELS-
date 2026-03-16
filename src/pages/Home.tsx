@@ -87,7 +87,7 @@ export default function Home() {
       />
       <div className="fixed h-[600px] w-[600px] rounded-full bg-white/4 blur-[150px] -left-40 top-1/2 -translate-y-1/2 pointer-events-none z-0" />
       
-      <div className="relative z-10 pt-16 pb-20 md:pb-0 snap-y snap-mandatory h-[100dvh] overflow-y-scroll scrollbar-hide">
+      <div className="relative z-10 h-[100dvh] w-full max-w-[450px] mx-auto snap-y snap-mandatory overflow-y-scroll scrollbar-hide">
         {reels.map(reel => (
           <ReelCard
             key={reel.id}
