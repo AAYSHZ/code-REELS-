@@ -62,7 +62,7 @@ export default function Leaderboard() {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid grid-cols-4 bg-muted/30 mb-4">
             {TABS.map(t => (
-              <TabsTrigger key={t.value} value={t.value} className="text-xs gap-1 data-[state=active]:gradient-primary">
+              <TabsTrigger key={t.value} value={t.value} className="text-xs gap-1 data-[state=active]:bg-white data-[state=active]:text-black text-white/50 bg-transparent hover:text-white">
                 <t.icon className="w-3 h-3" />
                 <span className="hidden sm:inline">{t.label}</span>
               </TabsTrigger>

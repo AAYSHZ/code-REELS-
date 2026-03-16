@@ -261,7 +261,7 @@ export default function Messages() {
         console.log('[DM DEBUG] Fetching messages for conversation:', convoId);
         const { data, error } = await supabase
             .from('dm_messages')
-            .select('*, message_reactions(*), reels(title, thumbnail_url, video_url)')
+            .select('*, message_reactions(*), reels!dm_messages_shared_reel_id_fkey(title, thumbnail_url, video_url)')
             .eq('conversation_id', convoId)
             .order('created_at', { ascending: true });
         console.log('[DM DEBUG] Query result — data:', data?.length ?? 'null', 'error:', error);
