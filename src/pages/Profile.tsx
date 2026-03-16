@@ -3,22 +3,17 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { useFollow } from '@/hooks/useFollow';
-import { Progress } from '@/components/ui/progress';
-import { Flame, Coins, Star, Shield, Crown, Settings, Github, Linkedin, Globe, Eye, UserPlus, Check, Handshake, Pin, Repeat2, Trash2, Trophy } from 'lucide-react';
+import { Flame, Coins, Star, Shield, Crown, Settings, Github, Linkedin, Globe, Eye, UserPlus, Check, Handshake, Pin, Repeat2, Trash2, Trophy, MessageSquare, Bookmark } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import SkillRadarChart from '@/components/SkillRadarChart';
 import EditProfileModal from '@/components/EditProfileModal';
-import { xpForLevel } from '@/utils/pointsEngine';
 import FadeContent from '@/components/effects/FadeContent';
-import DecryptedText from '@/components/effects/DecryptedText';
-import CircularText from '@/components/effects/CircularText';
-import GradientText from '@/components/effects/GradientText';
 import CountUp from '@/components/effects/CountUp';
 import FollowListModal from '@/components/FollowListModal';
 import { toast } from 'sonner';
 import { AnimatePresence } from 'framer-motion';
+import { Link } from 'react-router-dom';
 
 export default function Profile() {
   const { userId } = useParams();
@@ -27,7 +22,8 @@ export default function Profile() {
   const [profile, setProfile] = useState<any>(null);
   const [reels, setReels] = useState<any[]>([]);
   const [reposts, setReposts] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'reels' | 'reposts'>('reels');
+  const [savedReels, setSavedReels] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'reels' | 'saved' | 'reposts'>('reels');
   const [pinnedReel, setPinnedReel] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
@@ -44,7 +40,6 @@ export default function Profile() {
         ...p,
         skill_points: (p.skill_points as any) || { dsa: 0, webdev: 0, aiml: 0, hardware: 0, debugging: 0, roadmaps: 0, coding: 0, other: 0 },
       });
-      // Fetch pinned reel
       if (p.pinned_reel_id) {
         const { data: pr } = await supabase.from('reels').select('*').eq('id', p.pinned_reel_id).single();
         if (pr) setPinnedReel(pr);
@@ -58,13 +53,25 @@ export default function Profile() {
       setReposts(r.filter(reel => reel.is_repost));
     }
 
+    // Fetch saved reels
+    if (user?.id === userId) {
+      const { data: saves } = await supabase
+        .from('reel_saves')
+        .select('reel_id')
+        .eq('user_id', userId);
+      if (saves && saves.length > 0) {
+        const reelIds = saves.map((s: any) => s.reel_id);
+        const { data: savedData } = await supabase.from('reels').select('*').in('id', reelIds);
+        if (savedData) setSavedReels(savedData);
+      }
+    }
+
     setLoading(false);
   };
 
   useEffect(() => {
     if (userId) fetchData();
 
-    // Subscribe to realtime profile updates for XP/level changes
     if (userId) {
       const channel = supabase
         .channel('profile-xp-' + userId)
@@ -91,7 +98,6 @@ export default function Profile() {
 
   const handleRemoveRepost = async (repostId: string) => {
     if (!user || !isOwnProfile) return;
-    // Optimistic UI
     setReposts(prev => prev.filter(r => r.id !== repostId));
     setConfirmRemoveRepostId(null);
 
@@ -105,7 +111,7 @@ export default function Profile() {
     if (error) {
       console.error('Error removing repost:', error);
       toast.error('Failed to remove repost');
-      fetchData(); // rollback by refetching
+      fetchData();
     } else {
       toast.success('Repost removed');
     }
@@ -119,8 +125,8 @@ export default function Profile() {
     toast.success(newPinned ? 'Reel pinned!' : 'Reel unpinned');
   };
 
-  if (loading) return <div className="flex items-center justify-center min-h-screen pt-16"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>;
-  if (!profile) return <div className="flex items-center justify-center min-h-screen pt-16 text-muted-foreground">Profile not found</div>;
+  if (loading) return <div className="flex items-center justify-center min-h-screen pt-16"><div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" /></div>;
+  if (!profile) return <div className="flex items-center justify-center min-h-screen pt-16 text-white/40">Profile not found</div>;
 
   const currentXp = profile.xp || 0;
   const currentLevel = Math.floor(Math.sqrt(currentXp / 10));
@@ -128,153 +134,168 @@ export default function Profile() {
   const xpForCurrentLevel = Math.pow(currentLevel, 2) * 10;
   const progressPercentage = Math.min(Math.max(((currentXp - xpForCurrentLevel) / (xpForNextLevel - xpForCurrentLevel)) * 100, 0), 100);
 
-  const totalScore = currentXp + (profile.reputation_score || 0) + (profile.coins || 0);
-  const badgeText = `${(profile.current_badge || 'NEWCOMER').toUpperCase()} • LEVEL ${currentLevel} • `;
+  const badge = profile.current_badge || 'Newcomer';
+  let badgeColor = 'bg-white/10 text-white/60 border-white/10';
+  if (badge === 'Coder') badgeColor = 'bg-[#2ED573]/20 text-[#2ED573] border-[#2ED573]/30';
+  if (badge === 'Debugger') badgeColor = 'bg-[#FFA502]/20 text-[#FFA502] border-[#FFA502]/30';
+  if (badge === 'Architect') badgeColor = 'bg-white/20 text-white border-white/20';
+  if (badge === 'Code Master') badgeColor = 'bg-[#FFD700]/20 text-[#FFD700] border-[#FFD700]/30';
+
+  const gridReels = activeTab === 'reels' ? reels : activeTab === 'saved' ? savedReels : reposts;
 
   return (
-    <FadeContent className="min-h-screen pt-16 pb-24 max-w-2xl mx-auto">
-      {/* Cover Photo */}
-      <div className="relative w-full h-32 sm:h-40 overflow-hidden">
-        {profile.cover_photo ? (
-          <img src={profile.cover_photo} alt="Cover" className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full gradient-primary opacity-30" />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background" />
-      </div>
+    <FadeContent className="min-h-screen pt-16 pb-24 bg-[#080808]">
+      <div className="max-w-lg mx-auto px-4">
 
-      <div className="px-4 -mt-12 relative z-10">
-        {/* Header */}
-        <div className="flex items-end gap-4 mb-2">
-          <div className="relative w-24 h-24 flex-shrink-0">
-            <CircularText text={badgeText} radius={48} />
-            <div className="absolute inset-3 rounded-full overflow-hidden border-4 border-background shadow-xl">
-              <Avatar className="w-full h-full">
+        {/* ── 1. PROFILE HEADER ── */}
+        <div className="pt-6 pb-4">
+          <div className="flex items-center gap-5 sm:gap-6">
+            {/* Avatar */}
+            <div className="flex-shrink-0">
+              <Avatar className="w-[90px] h-[90px] border-2 border-white/10">
                 <AvatarImage src={profile.avatar || undefined} />
-                <AvatarFallback className="gradient-primary text-2xl font-bold text-foreground w-full h-full">
+                <AvatarFallback className="bg-white/10 text-2xl font-bold text-white w-full h-full">
                   {profile.name?.charAt(0)?.toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
             </div>
+
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-xl font-bold text-white truncate">{profile.name || 'User'}</h1>
+                {profile.is_verified_creator && <Shield className="w-4 h-4 text-white flex-shrink-0" />}
+                {profile.is_elite_creator && <Crown className="w-4 h-4 text-[#FFD700] flex-shrink-0" />}
+                {profile.open_to_collab && (
+                  <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-green-500/20 text-green-400 border border-green-500/30 flex-shrink-0">
+                    <Handshake className="w-3 h-3" /> Collab
+                  </span>
+                )}
+              </div>
+
+              {profile.username && (
+                <p className="text-sm text-white/40 font-mono mt-0.5">@{profile.username}</p>
+              )}
+
+              <span className={`inline-block mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border ${badgeColor}`}>
+                {badge}
+              </span>
+
+              {/* Followers inline */}
+              <div className="flex items-center gap-1 mt-2">
+                <button onClick={() => setFollowListType('followers')} className="text-sm text-white/60 hover:text-white transition-colors">
+                  <strong className="text-white">{followerCount}</strong> Followers
+                </button>
+                <span className="text-white/20 mx-1">·</span>
+                <button onClick={() => setFollowListType('following')} className="text-sm text-white/60 hover:text-white transition-colors">
+                  <strong className="text-white">{followingCount}</strong> Following
+                </button>
+              </div>
+            </div>
           </div>
-          <div className="flex-1 pb-1">
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-foreground">
-                <DecryptedText text={profile.name || 'User'} speed={40} />
-              </h1>
-              {profile.is_verified_creator && <Shield className="w-4 h-4 text-primary" />}
-              {profile.is_elite_creator && <Crown className="w-4 h-4 text-warning" />}
-              {profile.open_to_collab && (
-                <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-green-500/20 text-green-400 border border-green-500/30">
-                  <Handshake className="w-3 h-3" /> Collab
+
+          {/* Bio */}
+          {profile.bio && (
+            <p className="text-sm text-white/60 mt-3 leading-relaxed">{profile.bio}</p>
+          )}
+
+          {/* Skill Tags */}
+          {(profile.skill_tags as string[] || []).length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {(profile.skill_tags as string[]).map((tag: string, i: number) => (
+                <span key={i} className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/8 text-white/50 border border-white/10">
+                  {tag}
                 </span>
+              ))}
+            </div>
+          )}
+
+          {/* Social Links */}
+          {(profile.github_url || profile.linkedin_url || profile.portfolio_url) && (
+            <div className="flex items-center gap-3 mt-3">
+              {profile.github_url && (
+                <a href={profile.github_url} target="_blank" rel="noopener noreferrer" className="text-white/30 hover:text-white transition-colors">
+                  <Github className="w-4 h-4" />
+                </a>
+              )}
+              {profile.linkedin_url && (
+                <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-white/30 hover:text-white transition-colors">
+                  <Linkedin className="w-4 h-4" />
+                </a>
+              )}
+              {profile.portfolio_url && (
+                <a href={profile.portfolio_url} target="_blank" rel="noopener noreferrer" className="text-white/30 hover:text-white transition-colors">
+                  <Globe className="w-4 h-4" />
+                </a>
               )}
             </div>
-            {profile.username && (
-              <p className="text-xs text-muted-foreground font-mono">@{profile.username}</p>
-            )}
-            <div className="flex items-center gap-2 mt-2">
-              {(() => {
-                const badge = profile.current_badge || 'Newcomer';
-                let badgeColor = 'bg-gray-800 text-gray-300 border-gray-700';
-                if (badge === 'Coder') badgeColor = 'bg-[#2ED573]/20 text-[#2ED573] border-[#2ED573]/30';
-                if (badge === 'Debugger') badgeColor = 'bg-[#FFA502]/20 text-[#FFA502] border-[#FFA502]/30';
-                if (badge === 'Architect') badgeColor = 'bg-white/20 text-white border-white/20/30';
-                if (badge === 'Code Master') badgeColor = 'bg-gradient-to-r from-[#FFD700]/20 to-[#FFA502]/20 text-[#FFD700] border-[#FFD700]/30';
-
-                return (
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${badgeColor}`}>
-                    {badge}
-                  </span>
-                );
-              })()}
-            </div>
-          </div>
-        </div>
-
-        {/* Followers / Following */}
-        <div className="flex items-center gap-4 mb-2">
-          <button onClick={() => setFollowListType('followers')} className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50">
-            <strong className="text-foreground">{followerCount}</strong> Followers
-          </button>
-          <button onClick={() => setFollowListType('following')} className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50">
-            <strong className="text-foreground">{followingCount}</strong> Following
-          </button>
-          {profile.total_watch_hours != null && profile.total_watch_hours > 0 && (
-            <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-              <Eye className="w-3 h-3" /> {profile.total_watch_hours.toFixed(1)}h watched
-            </span>
           )}
         </div>
 
-        {/* Bio */}
-        {profile.bio && (
-          <p className="text-sm text-muted-foreground mb-2 leading-relaxed">{profile.bio}</p>
-        )}
-
-        {/* Skill Tags */}
-        {(profile.skill_tags as string[] || []).length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-2">
-            {(profile.skill_tags as string[]).map((tag: string, i: number) => (
-              <span key={i} className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary/20 text-primary border border-primary/30">
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* Social Links */}
-        <div className="flex items-center gap-3 mb-4">
-          {profile.github_url && (
-            <a href={profile.github_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
-              <Github className="w-4 h-4" />
-            </a>
-          )}
-          {profile.linkedin_url && (
-            <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
-              <Linkedin className="w-4 h-4" />
-            </a>
-          )}
-          {profile.portfolio_url && (
-            <a href={profile.portfolio_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
-              <Globe className="w-4 h-4" />
-            </a>
-          )}
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex gap-2 mb-4">
+        {/* ── 2. ACTION BUTTONS ── */}
+        <div className="flex gap-2 mb-5">
           {isOwnProfile ? (
-            <Button variant="outline" size="sm" className="flex-1 glass border-border" onClick={() => setEditOpen(true)}>
-              <Settings className="w-4 h-4 mr-2" /> Edit Profile
-            </Button>
-          ) : (
-            <Button
-              size="sm"
-              className={`flex-1 ${isFollowing ? 'glass border-border text-muted-foreground' : ''}`}
-              variant={isFollowing ? 'outline' : 'default'}
-              style={!isFollowing ? { backgroundColor: '#ffffff', color: '#000000' } : undefined}
-              onClick={handleFollow}
-              disabled={followLoading}
+            <button
+              onClick={() => setEditOpen(true)}
+              className="w-full py-2 rounded-lg text-sm font-semibold bg-white/8 border border-white/10 text-white hover:bg-white/12 transition-colors"
             >
-              {isFollowing ? <><Check className="w-4 h-4 mr-1" /> Following</> : <><UserPlus className="w-4 h-4 mr-1" /> Follow</>}
-            </Button>
+              <Settings className="w-4 h-4 inline mr-2" />Settings
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={handleFollow}
+                disabled={followLoading}
+                className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                  isFollowing
+                    ? 'bg-white/8 border border-white/10 text-white/60 hover:bg-white/12'
+                    : 'bg-white text-black hover:bg-white/85'
+                }`}
+              >
+                {isFollowing ? <><Check className="w-4 h-4 inline mr-1" />Following</> : <><UserPlus className="w-4 h-4 inline mr-1" />Follow</>}
+              </button>
+              <button
+                onClick={() => navigate('/messages')}
+                className="flex-1 py-2 rounded-lg text-sm font-semibold bg-white/8 border border-white/10 text-white hover:bg-white/12 transition-colors"
+              >
+                <MessageSquare className="w-4 h-4 inline mr-1" />Message
+              </button>
+            </>
           )}
         </div>
 
-        {/* XP Bar */}
-        <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-4 mb-4">
-          <div className="flex justify-between items-end mb-2">
-            <div>
-              <p className="text-sm font-bold text-foreground">XP: {currentXp} / {xpForNextLevel}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Level {currentLevel} — {profile.current_badge || 'Newcomer'}</p>
-            </div>
-            <span className="text-xs font-medium text-white">{Math.max(0, xpForNextLevel - currentXp)} XP to Level {currentLevel + 1}</span>
+        {/* ── 3. STATS ROW ── */}
+        <div className="grid grid-cols-4 gap-0 mb-5">
+          <div className="text-center py-2">
+            <p className="text-lg font-bold text-white"><CountUp end={currentXp} duration={1.5} /></p>
+            <p className="text-[10px] uppercase tracking-wider text-white/30">Total XP</p>
           </div>
-          <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden shadow-[0_0_8px_rgba(255,255,255,0.5)]">
+          <div className="text-center py-2">
+            <p className="text-lg font-bold text-white"><CountUp end={profile.coins || 0} duration={1.5} /></p>
+            <p className="text-[10px] uppercase tracking-wider text-white/30">Coins</p>
+          </div>
+          <div className="text-center py-2">
+            <p className={`text-lg font-bold flex items-center justify-center gap-1 ${(profile.streak_count || 0) > 0 ? 'text-white' : 'text-white/20'}`}>
+              <Flame className={`w-4 h-4 ${(profile.streak_count || 0) > 0 ? 'text-orange-400' : 'text-white/20'}`} />
+              <CountUp end={profile.streak_count || 0} duration={1} />
+            </p>
+            <p className="text-[10px] uppercase tracking-wider text-white/30">Streak</p>
+          </div>
+          <div className="text-center py-2">
+            <p className="text-lg font-bold text-white"><CountUp end={reposts.length} duration={1} /></p>
+            <p className="text-[10px] uppercase tracking-wider text-white/30">Reposts</p>
+          </div>
+        </div>
+
+        {/* ── 4. XP PROGRESS BAR ── */}
+        <div className="mb-5">
+          <div className="flex justify-between items-center mb-1.5">
+            <span className="text-xs text-white/40">Level {currentLevel} · {badge}</span>
+            <span className="text-xs text-white/40">{currentXp} / {xpForNextLevel} XP</span>
+          </div>
+          <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
             <motion.div
-              className="h-full"
-              style={{ backgroundImage: 'linear-gradient(to right, white, rgba(255,255,255,0.2))' }}
+              className="h-full bg-white rounded-full"
               initial={{ width: 0 }}
               animate={{ width: `${progressPercentage}%` }}
               transition={{ duration: 1, ease: 'easeOut' }}
@@ -282,216 +303,137 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-4 gap-3 mb-4">
-          <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-3 text-center">
-            <Trophy className="w-4 h-4 text-foreground mx-auto mb-1" />
-            <p className="text-lg font-bold text-foreground"><CountUp end={totalScore} duration={2} /></p>
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total</p>
+        {/* ── 5. POINTS ROW ── */}
+        <div className="grid grid-cols-3 gap-0 mb-5">
+          <div className="text-center py-2 border-l-2 border-white/20">
+            <p className="text-xl font-bold text-white"><CountUp end={profile.creator_points || 0} /></p>
+            <p className="text-[10px] uppercase tracking-wider text-white/30">Creator</p>
           </div>
-          <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-3 text-center">
-            <Coins className="w-4 h-4 text-foreground mx-auto mb-1" />
-            <p className="text-lg font-bold text-foreground"><CountUp end={profile.coins} duration={2} /></p>
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Coins</p>
+          <div className="text-center py-2 border-l-2 border-white/20">
+            <p className="text-xl font-bold text-white"><CountUp end={profile.helper_points || 0} /></p>
+            <p className="text-[10px] uppercase tracking-wider text-white/30">Helper</p>
           </div>
-          <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-3 text-center">
-            <Flame
-              className={`w-4 h-4 mx-auto mb-1 ${(profile.streak_count || 0) > 0 ? 'text-[#FF4757]' : 'text-gray-500'}`}
-              style={(profile.streak_count || 0) > 0 ? { filter: 'drop-shadow(0 0 8px rgba(255,71,87,0.5))' } : {}}
-            />
-            <p className={`text-lg font-bold ${(profile.streak_count || 0) > 0 ? 'text-[#FF4757]' : 'text-gray-500'}`}>
-              <CountUp end={profile.streak_count || 0} duration={1} />
-            </p>
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-              {(profile.streak_count || 0) > 0 ? 'Streak' : 'No Streak'}
-            </p>
-          </div>
-          <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-3 text-center">
-            <Repeat2 className="w-4 h-4 text-foreground mx-auto mb-1" />
-            <p className="text-lg font-bold text-foreground"><CountUp end={reposts.length} duration={1} /></p>
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Reposts</p>
+          <div className="text-center py-2 border-l-2 border-white/20">
+            <p className="text-xl font-bold text-white"><CountUp end={profile.knowledge_points || 0} /></p>
+            <p className="text-[10px] uppercase tracking-wider text-white/30">Knowledge</p>
           </div>
         </div>
 
-        {/* Points Breakdown */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          <div className="bg-[#1A1A1A] border border-white/5 border-l-4 border-l-white/30 rounded-xl p-3">
-            <p className="text-xl font-bold text-foreground"><CountUp end={profile.creator_points} /></p>
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Creator</p>
-            <div className="h-0.5 w-full bg-white/5 rounded-full overflow-hidden">
-              <div className="h-full bg-white" style={{ width: '100%' }} />
-            </div>
-          </div>
-          <div className="bg-[#1A1A1A] border border-white/5 border-l-4 border-l-white/30 rounded-xl p-3">
-            <p className="text-xl font-bold text-foreground"><CountUp end={profile.helper_points} /></p>
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Helper</p>
-            <div className="h-0.5 w-full bg-white/5 rounded-full overflow-hidden">
-              <div className="h-full bg-white" style={{ width: '100%' }} />
-            </div>
-          </div>
-          <div className="bg-[#1A1A1A] border border-white/5 border-l-4 border-l-[#FFA502] rounded-xl p-3">
-            <p className="text-xl font-bold text-foreground"><CountUp end={profile.knowledge_points} /></p>
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Knowledge</p>
-            <div className="h-0.5 w-full bg-white/5 rounded-full overflow-hidden">
-              <div className="h-full bg-[#FFA502]" style={{ width: '100%' }} />
-            </div>
-          </div>
-        </div>
-
-        {/* Skill Chart */}
-        <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-4 mb-6">
-          <h3 className="text-sm font-semibold text-foreground mb-4 uppercase tracking-wider">Skill Distribution</h3>
+        {/* ── 6. SKILL DISTRIBUTION ── */}
+        <div className="mb-6">
+          <h3 className="text-xs uppercase tracking-widest text-white/30 mb-3">Skill Distribution</h3>
           <SkillRadarChart skillPoints={profile.skill_points} />
         </div>
 
-        {/* Badges */}
-        <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-4 mb-6">
-          <h3 className="text-sm font-semibold text-foreground mb-4 uppercase tracking-wider">Badges</h3>
-          <div className="flex flex-wrap gap-2">
-            {(profile.badges || []).map((badge: string, i: number) => {
-              let badgeColor = 'bg-gray-800 text-gray-300 border-gray-700';
-              if (badge === 'Coder') badgeColor = 'bg-[#2ED573]/20 text-[#2ED573] border-[#2ED573]/30';
-              if (badge === 'Debugger') badgeColor = 'bg-[#FFA502]/20 text-[#FFA502] border-[#FFA502]/30';
-              if (badge === 'Architect') badgeColor = 'bg-white/20 text-white border-white/20/30';
-              if (badge === 'Code Master') badgeColor = 'bg-gradient-to-r from-[#FFD700]/20 to-[#FFA502]/20 text-[#FFD700] border-[#FFD700]/30';
-
-              return (
-                <span key={i} className={`px-3 py-1 rounded-full text-xs font-bold border ${badgeColor}`}>
-                  {badge}
-                </span>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Pinned Reel */}
-        {pinnedReel && (
-          <div className="mb-6">
-            <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-1"><Pin className="w-3.5 h-3.5 text-primary" /> Pinned Reel</h3>
-            <div
-              className="aspect-[9/16] max-w-[200px] rounded-xl glass overflow-hidden relative group cursor-pointer border-2 border-primary/30"
-              onClick={() => navigate(`/reel/${pinnedReel.id}`)}
-            >
-              <video src={pinnedReel.video_url} className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <p className="text-xs text-foreground text-center px-2">{pinnedReel.title}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Tabs for Reels and Reposts */}
-        <div className="flex gap-4 border-b border-white/10 mb-4">
+        {/* ── 8. TABS ── */}
+        <div className="flex border-b border-white/10 mb-0">
           <button
-            className={`pb-2 text-sm font-semibold transition-colors ${activeTab === 'reels' ? 'text-foreground border-b-2 border-primary' : 'text-muted-foreground'}`}
+            className={`flex-1 pb-3 text-sm font-semibold text-center transition-colors ${activeTab === 'reels' ? 'text-white border-b-2 border-white' : 'text-white/30'}`}
             onClick={() => setActiveTab('reels')}
           >
-            Reels ({reels.length})
+            Reels
           </button>
+          {isOwnProfile && (
+            <button
+              className={`flex-1 pb-3 text-sm font-semibold text-center transition-colors ${activeTab === 'saved' ? 'text-white border-b-2 border-white' : 'text-white/30'}`}
+              onClick={() => setActiveTab('saved')}
+            >
+              Saved
+            </button>
+          )}
           <button
-            className={`pb-2 text-sm font-semibold transition-colors ${activeTab === 'reposts' ? 'text-foreground border-b-2 border-primary' : 'text-muted-foreground'}`}
+            className={`flex-1 pb-3 text-sm font-semibold text-center transition-colors ${activeTab === 'reposts' ? 'text-white border-b-2 border-white' : 'text-white/30'}`}
             onClick={() => setActiveTab('reposts')}
           >
-            Reposts ({reposts.length})
+            Reposts
           </button>
         </div>
 
-        {/* Content based on tab */}
-        {activeTab === 'reels' && (
-          <div>
-            {reels.length === 0 ? (
-              <div className="text-center py-10 text-muted-foreground"><p>No reels yet.</p></div>
-            ) : (
-              <div className="grid grid-cols-3 gap-2">
-                {reels.map(reel => (
-                  <div key={reel.id} className="aspect-[9/16] rounded-xl glass overflow-hidden relative group cursor-pointer" onClick={() => navigate(`/reel/${reel.id}`)}>
-                    <video src={reel.video_url} className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
-                      <p className="text-xs text-foreground text-center px-2">{reel.title}</p>
-                      {isOwnProfile && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handlePinReel(reel.id); }}
-                          className={`text-[10px] flex items-center gap-0.5 px-2 py-0.5 rounded-full ${profile.pinned_reel_id === reel.id ? 'bg-primary/30 text-primary' : 'bg-background/60 text-muted-foreground hover:text-foreground'}`}
-                        >
-                          <Pin className="w-3 h-3" /> {profile.pinned_reel_id === reel.id ? 'Unpin' : 'Pin'}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+        {/* ── 7. REELS GRID ── */}
+        {gridReels.length === 0 ? (
+          <div className="text-center py-16 text-white/20 text-sm">
+            {activeTab === 'reels' ? 'No reels yet.' : activeTab === 'saved' ? 'No saved reels.' : 'No reposts yet.'}
           </div>
-        )}
-
-        {activeTab === 'reposts' && (
-          <div>
-            {reposts.length === 0 ? (
-              <div className="text-center py-10 text-muted-foreground"><p>No reposts yet.</p></div>
-            ) : (
-              <div className="grid grid-cols-3 gap-2">
-                {reposts.map(reel => (
-                  <div key={reel.id} className="aspect-[9/16] rounded-xl glass overflow-hidden relative group cursor-pointer" onClick={() => navigate(`/reel/${reel.original_reel_id || reel.id}`)}>
-                    <video src={reel.video_url} className="w-full h-full object-cover" />
-                    <div className="absolute top-2 right-2 bg-black/60 rounded-full p-1 backdrop-blur-md">
-                      <Repeat2 className="w-3 h-3 text-white" />
-                    </div>
-                    {isOwnProfile && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setConfirmRemoveRepostId(reel.id); }}
-                        className="absolute top-2 left-2 bg-destructive/80 hover:bg-destructive rounded-full p-1 backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                        title="Remove repost"
-                      >
-                        <Trash2 className="w-3 h-3 text-white" />
-                      </button>
-                    )}
-                    <div className="absolute inset-0 bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
-                      <p className="text-xs text-foreground text-center px-2">{reel.title}</p>
-                      <span className="text-[10px] font-medium bg-secondary/80 text-secondary-foreground px-2 py-0.5 rounded-full backdrop-blur-md">
-                        Reposted
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Confirm Remove Repost Dialog */}
-        <AnimatePresence>
-          {confirmRemoveRepostId && (
-            <motion.div
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setConfirmRemoveRepostId(null)}
-            >
-              <motion.div
-                className="bg-[#1A1A1A] rounded-2xl p-6 w-[90%] max-w-sm border border-white/10 shadow-xl"
-                initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-                onClick={(e) => e.stopPropagation()}
+        ) : (
+          <div className="grid grid-cols-3 gap-0.5 mt-0.5">
+            {gridReels.map(reel => (
+              <div
+                key={reel.id}
+                className="aspect-square overflow-hidden relative group cursor-pointer"
+                onClick={() => navigate(`/reel/${activeTab === 'reposts' ? (reel.original_reel_id || reel.id) : reel.id}`)}
               >
-                <h3 className="text-foreground font-semibold text-base mb-2">Remove this repost?</h3>
-                <p className="text-muted-foreground text-sm mb-5">The original reel won't be affected.</p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setConfirmRemoveRepostId(null)}
-                    className="flex-1 py-2 rounded-xl text-sm font-medium bg-white/10 text-foreground hover:bg-white/20 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => handleRemoveRepost(confirmRemoveRepostId)}
-                    className="flex-1 py-2 rounded-xl text-sm font-medium bg-destructive text-white hover:bg-destructive/80 transition-colors"
-                  >
-                    Remove
-                  </button>
+                {reel.thumbnail_url ? (
+                  <img src={reel.thumbnail_url} alt={reel.title} className="w-full h-full object-cover group-hover:brightness-75 transition-all duration-200" />
+                ) : (
+                  <video src={reel.video_url} className="w-full h-full object-cover group-hover:brightness-75 transition-all duration-200" />
+                )}
+
+                {/* Repost badge */}
+                {activeTab === 'reposts' && (
+                  <div className="absolute top-1.5 right-1.5 bg-black/60 rounded-full p-1 backdrop-blur-md">
+                    <Repeat2 className="w-3 h-3 text-white" />
+                  </div>
+                )}
+
+                {/* Hover overlay */}
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+                  <p className="text-[11px] text-white text-center px-2 line-clamp-2">{reel.title}</p>
+                  {isOwnProfile && activeTab === 'reels' && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handlePinReel(reel.id); }}
+                      className={`text-[10px] flex items-center gap-0.5 px-2 py-0.5 rounded-full ${profile.pinned_reel_id === reel.id ? 'bg-white/30 text-white' : 'bg-white/10 text-white/60 hover:text-white'}`}
+                    >
+                      <Pin className="w-3 h-3" /> {profile.pinned_reel_id === reel.id ? 'Unpin' : 'Pin'}
+                    </button>
+                  )}
+                  {isOwnProfile && activeTab === 'reposts' && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setConfirmRemoveRepostId(reel.id); }}
+                      className="text-[10px] flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-red-500/30 text-red-400 hover:bg-red-500/50"
+                    >
+                      <Trash2 className="w-3 h-3" /> Remove
+                    </button>
+                  )}
                 </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
+
+      {/* Confirm Remove Repost Dialog */}
+      <AnimatePresence>
+        {confirmRemoveRepostId && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setConfirmRemoveRepostId(null)}
+          >
+            <motion.div
+              className="bg-[#1A1A1A] rounded-2xl p-6 w-[90%] max-w-sm border border-white/10 shadow-xl"
+              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-white font-semibold text-base mb-2">Remove this repost?</h3>
+              <p className="text-white/40 text-sm mb-5">The original reel won't be affected.</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setConfirmRemoveRepostId(null)}
+                  className="flex-1 py-2 rounded-xl text-sm font-medium bg-white/10 text-white hover:bg-white/20 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleRemoveRepost(confirmRemoveRepostId)}
+                  className="flex-1 py-2 rounded-xl text-sm font-medium bg-red-500 text-white hover:bg-red-500/80 transition-colors"
+                >
+                  Remove
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Edit Modal */}
       {isOwnProfile && editOpen && (
