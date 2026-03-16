@@ -15,7 +15,7 @@ export default function HelpButton() {
     return (
         <>
             {/* Floating button */}
-            <div className="fixed right-6 bottom-6 z-50">
+            <div className="fixed top-4 right-4 md:top-auto md:bottom-6 md:right-6 z-50">
                 <AnimatePresence>
                     {hovered && (
                         <motion.div

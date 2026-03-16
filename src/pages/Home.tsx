@@ -19,6 +19,7 @@ export default function Home() {
         .from('reels')
         .select('*')
         .is('parent_reel_id', null)
+        .eq('is_repost', false)
         .order('reach_score', { ascending: false })
         .limit(50);
 
