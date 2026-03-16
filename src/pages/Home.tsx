@@ -2,8 +2,6 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import ReelCard from '@/components/ReelCard';
-import Particles from '@/components/effects/Particles';
-import SplashCursor from '@/components/effects/SplashCursor';
 import FadeContent from '@/components/effects/FadeContent';
 import BlurText from '@/components/effects/BlurText';
 
@@ -39,29 +37,36 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen pt-16">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="flex items-center justify-center min-h-screen pt-16 bg-[#080b0f]">
+        <div className="w-8 h-8 border-2 border-[#6C63FF] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   if (reels.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen pt-16 px-4 relative overflow-hidden">
-        <Particles count={35} color="#6c63ff" />
+      <div className="flex flex-col items-center justify-center min-h-screen pt-16 px-4 relative overflow-hidden bg-[#080b0f]">
+        <div 
+          className="fixed inset-0 z-0 pointer-events-none" 
+          style={{
+            backgroundImage: 'radial-gradient(rgba(108,99,255,0.06) 1.5px, transparent 1.5px)',
+            backgroundSize: '24px 24px'
+          }}
+        />
+        <div className="fixed h-[600px] w-[600px] rounded-full bg-[#6C63FF]/5 blur-[150px] -left-40 top-1/2 -translate-y-1/2 pointer-events-none z-0" />
         <FadeContent className="text-center max-w-md relative z-10">
-          <div className="w-24 h-24 rounded-2xl gradient-primary glow-primary flex items-center justify-center mx-auto mb-6">
-            <BlurText text="CR" className="text-4xl font-bold text-foreground" />
+          <div className="w-24 h-24 rounded-2xl bg-[#6C63FF] shadow-lg shadow-[#6C63FF]/20 flex items-center justify-center mx-auto mb-6">
+            <BlurText text="CR" className="text-4xl font-bold text-white" />
           </div>
-          <h1 className="text-4xl font-bold mb-3">
-            <BlurText text="CodeReels" className="gradient-text" delay={0.3} />
+          <h1 className="text-4xl font-bold mb-3 text-white">
+            <BlurText text="CodeReels" className="" delay={0.3} />
           </h1>
-          <p className="text-muted-foreground mb-6">
-            <BlurText text="The short-video platform for coding education. Upload your first reel to get started!" delay={0.5} />
+          <p className="text-white/50 mb-6">
+            <BlurText text="The premium platform for coding education. Upload your first reel to get started!" delay={0.5} />
           </p>
           <div className="flex justify-center gap-3">
             {['DSA', 'Web Dev', 'AI-ML', 'Hardware', 'Other'].map((cat, i) => (
-              <span key={cat} className="px-3 py-1 rounded-full text-xs font-mono glass border border-border text-muted-foreground">
+              <span key={cat} className="px-3 py-1 rounded-full text-xs font-mono border border-white/10 text-white/60 bg-white/5">
                 {cat}
               </span>
             ))}
@@ -72,20 +77,26 @@ export default function Home() {
   }
 
   return (
-    <div className="relative">
-      <Particles count={25} color="#6c63ff" className="fixed" />
-      <SplashCursor color="#6c63ff">
-        <div className="pt-16 pb-20 md:pb-0 snap-y snap-mandatory h-[calc(100vh-4rem)] overflow-y-scroll scrollbar-hide">
-          {reels.map(reel => (
-            <ReelCard
-              key={reel.id}
-              reel={reel}
-              uploaderProfile={profiles[reel.uploaded_by]}
-              onDeleted={() => setReels(prev => prev.filter(r => r.id !== reel.id))}
-            />
-          ))}
-        </div>
-      </SplashCursor>
+    <div className="relative min-h-screen bg-[#080b0f]">
+      <div 
+        className="fixed inset-0 z-0 pointer-events-none" 
+        style={{
+          backgroundImage: 'radial-gradient(rgba(108,99,255,0.06) 1.5px, transparent 1.5px)',
+          backgroundSize: '24px 24px'
+        }}
+      />
+      <div className="fixed h-[600px] w-[600px] rounded-full bg-[#6C63FF]/5 blur-[150px] -left-40 top-1/2 -translate-y-1/2 pointer-events-none z-0" />
+      
+      <div className="relative z-10 pt-16 pb-20 md:pb-0 snap-y snap-mandatory h-[100dvh] overflow-y-scroll scrollbar-hide">
+        {reels.map(reel => (
+          <ReelCard
+            key={reel.id}
+            reel={reel}
+            uploaderProfile={profiles[reel.uploaded_by]}
+            onDeleted={() => setReels(prev => prev.filter(r => r.id !== reel.id))}
+          />
+        ))}
+      </div>
     </div>
   );
 }

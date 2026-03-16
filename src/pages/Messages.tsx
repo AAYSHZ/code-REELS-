@@ -55,6 +55,7 @@ export default function Messages() {
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [activeConvo, setActiveConvo] = useState<Conversation | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
+    const [messagesLoading, setMessagesLoading] = useState(false);
     const [newMsg, setNewMsg] = useState('');
     const [sending, setSending] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -255,12 +256,22 @@ export default function Messages() {
 
     // Fetch messages for active conversation
     const fetchMessages = async (convoId: string) => {
-        const { data } = await supabase
+        setMessagesLoading(true);
+        console.log('[DM DEBUG] Fetching messages for conversation:', convoId);
+        const { data, error } = await supabase
             .from('dm_messages')
             .select('*, message_reactions(*), reels(title, thumbnail_url, video_url)')
             .eq('conversation_id', convoId)
             .order('created_at', { ascending: true });
-        if (data) setMessages(data as any);
+        console.log('[DM DEBUG] Query result — data:', data?.length ?? 'null', 'error:', error);
+        if (error) {
+            console.error('[DM DEBUG] ERROR fetching messages:', error);
+        }
+        if (data && data.length > 0) {
+            console.log('[DM DEBUG] First message:', data[0].content, '| Last message:', data[data.length - 1].content);
+        }
+        setMessages((data as any) || []);
+        setMessagesLoading(false);
 
         // Mark messages as read
         if (user) {
@@ -339,6 +350,8 @@ export default function Messages() {
     const openConversation = async (convo: Conversation) => {
         setActiveConvo(convo);
         setMobileShowChat(true);
+        setMessages([]);
+        setMessagesLoading(true);
         await fetchMessages(convo.id);
     };
 
@@ -571,8 +584,12 @@ export default function Messages() {
                 table: 'dm_messages',
                 filter: `conversation_id=eq.${activeConvo.id}`,
             }, (payload) => {
-                const updatedMsg = payload.new as Message;
-                setMessages(prev => prev.map(old => old.id === updatedMsg.id ? updatedMsg : old));
+                const updatedFields = payload.new as Partial<Message>;
+                setMessages(prev => prev.map(old =>
+                    old.id === updatedFields.id
+                        ? { ...old, ...updatedFields, message_reactions: old.message_reactions, reels: old.reels }
+                        : old
+                ));
             })
             .on('postgres_changes', {
                 event: '*',
@@ -863,153 +880,166 @@ export default function Messages() {
 
                             {/* Messages */}
                             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-                                {groupMessagesByDate(messages).map((group) => (
-                                    <div key={group.date} className="space-y-3">
-                                        <div className="flex justify-center my-4">
-                                            <span className="text-[10px] uppercase font-bold text-muted-foreground/60 bg-muted/20 px-3 py-1 rounded-full">{group.date}</span>
-                                        </div>
-                                        {group.messages.map((msg) => {
-                                            const isOwn = msg.sender_id === user?.id;
-                                            const quickEmojis = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
+                                {messagesLoading ? (
+                                    <div className="flex items-center justify-center h-full">
+                                        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                                    </div>
+                                ) : messages.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center h-full text-center">
+                                        <MessageSquare className="w-10 h-10 text-muted-foreground/30 mb-3" />
+                                        <p className="text-sm text-muted-foreground">No messages yet. Say hi! 👋</p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        {groupMessagesByDate(messages).map((group) => (
+                                            <div key={group.date} className="space-y-3">
+                                                <div className="flex justify-center my-4">
+                                                    <span className="text-[10px] uppercase font-bold text-muted-foreground/60 bg-muted/20 px-3 py-1 rounded-full">{group.date}</span>
+                                                </div>
+                                                {group.messages.map((msg) => {
+                                                    const isOwn = msg.sender_id === user?.id;
+                                                    const quickEmojis = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
 
-                                            return (
-                                                <div key={msg.id} id={`msg-${msg.id}`} className={`flex ${isOwn ? 'justify-end' : 'justify-start'} group relative transition-all duration-500`}>
-                                                    <div className="flex items-end gap-2 max-w-[75%] relative">
-                                                        {!isOwn && (
-                                                            <Link to={`/profile/${activeConvo.other_user?.user_id}`}>
-                                                                <Avatar className="w-6 h-6 flex-shrink-0 hover:opacity-80 transition-opacity">
-                                                                    <AvatarImage src={activeConvo.other_user?.avatar || undefined} />
-                                                                    <AvatarFallback className="gradient-primary text-[10px] font-bold text-foreground">
-                                                                        {activeConvo.other_user?.name?.charAt(0)?.toUpperCase() || 'U'}
-                                                                    </AvatarFallback>
-                                                                </Avatar>
-                                                            </Link>
-                                                        )}
-                                                        <div
-                                                            className={`px-3.5 py-2 text-sm leading-relaxed relative ${isOwn
-                                                                ? 'bg-[#00FF94] text-black rounded-2xl rounded-br-none'
-                                                                : 'bg-[#1a1a2e] text-white rounded-2xl rounded-bl-none'
-                                                                }`}
-                                                        >
-                                                            {msg.reply_to_message_id && (
-                                                                <div className="mb-1 text-xs opacity-75 border-l-2 border-current pl-2 pb-1">
-                                                                    <p className="font-semibold truncate max-w-[200px]">
-                                                                        {messages.find(m => m.id === msg.reply_to_message_id)?.sender_id === user?.id ? 'You' : activeConvo.other_user?.name}
-                                                                    </p>
-                                                                    <p className="truncate max-w-[200px]">{messages.find(m => m.id === msg.reply_to_message_id)?.content || 'Message'}</p>
-                                                                </div>
-                                                            )}
-                                                            {msg.message_type === 'reel' && msg.reels ? (
-                                                                <Link to={`/reel/${msg.shared_reel_id}`} className="block w-40 h-56 rounded-lg overflow-hidden relative mb-1 border border-border/50 shadow-sm group/reel">
-                                                                    {msg.reels.thumbnail_url ? (
-                                                                        <img src={msg.reels.thumbnail_url} alt={msg.reels.title} className="w-full h-full object-cover opacity-90 group-hover/reel:opacity-100 transition-opacity" />
-                                                                    ) : (
-                                                                        <div className="w-full h-full bg-muted/40 flex items-center justify-center">
-                                                                            <span className="text-xs text-muted-foreground font-semibold">Reel Video</span>
+                                                    return (
+                                                        <div key={msg.id} id={`msg-${msg.id}`} className={`flex ${isOwn ? 'justify-end' : 'justify-start'} group relative transition-all duration-500`}>
+                                                            <div className="flex items-end gap-2 max-w-[75%] relative">
+                                                                {!isOwn && (
+                                                                    <Link to={`/profile/${activeConvo.other_user?.user_id}`}>
+                                                                        <Avatar className="w-6 h-6 flex-shrink-0 hover:opacity-80 transition-opacity">
+                                                                            <AvatarImage src={activeConvo.other_user?.avatar || undefined} />
+                                                                            <AvatarFallback className="gradient-primary text-[10px] font-bold text-foreground">
+                                                                                {activeConvo.other_user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                                                                            </AvatarFallback>
+                                                                        </Avatar>
+                                                                    </Link>
+                                                                )}
+                                                                <div
+                                                                    className={`px-3.5 py-2 text-sm leading-relaxed relative ${isOwn
+                                                                        ? 'bg-[#00FF94] text-black rounded-2xl rounded-br-none'
+                                                                        : 'bg-[#1a1a2e] text-white rounded-2xl rounded-bl-none'
+                                                                        }`}
+                                                                >
+                                                                    {msg.reply_to_message_id && (
+                                                                        <div className="mb-1 text-xs opacity-75 border-l-2 border-current pl-2 pb-1">
+                                                                            <p className="font-semibold truncate max-w-[200px]">
+                                                                                {messages.find(m => m.id === msg.reply_to_message_id)?.sender_id === user?.id ? 'You' : activeConvo.other_user?.name}
+                                                                            </p>
+                                                                            <p className="truncate max-w-[200px]">{messages.find(m => m.id === msg.reply_to_message_id)?.content || 'Message'}</p>
                                                                         </div>
                                                                     )}
-                                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-2">
-                                                                        <p className="text-white text-xs font-bold truncate">{msg.reels.title}</p>
-                                                                    </div>
-                                                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                                                        <div className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center scale-90 group-hover/reel:scale-100 transition-transform shadow-lg">
-                                                                            <div className="w-0 h-0 border-y-[6px] border-y-transparent border-l-[10px] border-l-white ml-1"></div>
+                                                                    {msg.message_type === 'reel' && msg.reels ? (
+                                                                        <Link to={`/reel/${msg.shared_reel_id}`} className="block w-40 h-56 rounded-lg overflow-hidden relative mb-1 border border-border/50 shadow-sm group/reel">
+                                                                            {msg.reels.thumbnail_url ? (
+                                                                                <img src={msg.reels.thumbnail_url} alt={msg.reels.title} className="w-full h-full object-cover opacity-90 group-hover/reel:opacity-100 transition-opacity" />
+                                                                            ) : (
+                                                                                <div className="w-full h-full bg-muted/40 flex items-center justify-center">
+                                                                                    <span className="text-xs text-muted-foreground font-semibold">Reel Video</span>
+                                                                                </div>
+                                                                            )}
+                                                                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-2">
+                                                                                <p className="text-white text-xs font-bold truncate">{msg.reels.title}</p>
+                                                                            </div>
+                                                                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                                                                <div className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center scale-90 group-hover/reel:scale-100 transition-transform shadow-lg">
+                                                                                    <div className="w-0 h-0 border-y-[6px] border-y-transparent border-l-[10px] border-l-white ml-1"></div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </Link>
+                                                                    ) : msg.message_type === 'voice' && msg.image_url ? (
+                                                                        <div className="flex flex-col gap-1 min-w-[200px]">
+                                                                            <audio src={msg.image_url} controls className="w-full h-10 opacity-90 invert hue-rotate-180 brightness-75 contrast-200" />
                                                                         </div>
+                                                                    ) : msg.message_type === 'image' && msg.image_url ? (
+                                                                        <img
+                                                                            src={msg.image_url}
+                                                                            alt="Shared image"
+                                                                            className="max-w-[200px] md:max-w-[300px] rounded-lg object-cover cursor-pointer hover:opacity-95 transition-opacity"
+                                                                            onClick={() => window.open(msg.image_url!, '_blank')}
+                                                                        />
+                                                                    ) : (
+                                                                        <span className="whitespace-pre-wrap word-break">{highlightText(msg.content)}</span>
+                                                                    )}
+                                                                    <div className={`flex items-center gap-1 mt-1 justify-end ${isOwn ? 'text-black/60' : 'text-white/40'}`}>
+                                                                        <p className="text-[10px]">{formatMessageTime(msg.created_at)}</p>
+                                                                        {isOwn && (
+                                                                            <span className="ml-1">
+                                                                                {msg.is_read ? <CheckCheck className="w-3 h-3 text-emerald-700" /> : <Check className="w-3 h-3" />}
+                                                                            </span>
+                                                                        )}
                                                                     </div>
-                                                                </Link>
-                                                            ) : msg.message_type === 'voice' && msg.image_url ? (
-                                                                <div className="flex flex-col gap-1 min-w-[200px]">
-                                                                    <audio src={msg.image_url} controls className="w-full h-10 opacity-90 invert hue-rotate-180 brightness-75 contrast-200" />
+
+                                                                    {/* Reactions Display */}
+                                                                    {(msg.message_reactions && msg.message_reactions.length > 0) && (
+                                                                        <div className={`absolute -bottom-3 ${isOwn ? 'right-2' : 'left-2'} flex items-center gap-1 z-10`}>
+                                                                            {Object.entries(
+                                                                                msg.message_reactions.reduce((acc, r) => {
+                                                                                    acc[r.emoji] = (acc[r.emoji] || 0) + 1;
+                                                                                    return acc;
+                                                                                }, {} as Record<string, number>)
+                                                                            ).map(([emoji, count]) => (
+                                                                                <button
+                                                                                    key={emoji}
+                                                                                    onClick={() => toggleReaction(msg.id, emoji)}
+                                                                                    className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] border border-border/50 shadow-sm ${msg.message_reactions?.some(r => r.user_id === user?.id && r.emoji === emoji) ? 'bg-primary/20 text-primary-foreground' : 'bg-background text-foreground'}`}
+                                                                                >
+                                                                                    <span>{emoji}</span>
+                                                                                    {count > 1 && <span>{count}</span>}
+                                                                                </button>
+                                                                            ))}
+                                                                        </div>
+                                                                    )}
                                                                 </div>
-                                                            ) : msg.message_type === 'image' && msg.image_url ? (
-                                                                <img
-                                                                    src={msg.image_url}
-                                                                    alt="Shared image"
-                                                                    className="max-w-[200px] md:max-w-[300px] rounded-lg object-cover cursor-pointer hover:opacity-95 transition-opacity"
-                                                                    onClick={() => window.open(msg.image_url!, '_blank')}
-                                                                />
-                                                            ) : (
-                                                                <span className="whitespace-pre-wrap word-break">{highlightText(msg.content)}</span>
-                                                            )}
-                                                            <div className={`flex items-center gap-1 mt-1 justify-end ${isOwn ? 'text-black/60' : 'text-white/40'}`}>
-                                                                <p className="text-[10px]">{formatMessageTime(msg.created_at)}</p>
-                                                                {isOwn && (
-                                                                    <span className="ml-1">
-                                                                        {msg.is_read ? <CheckCheck className="w-3 h-3 text-emerald-700" /> : <Check className="w-3 h-3" />}
-                                                                    </span>
-                                                                )}
+
+                                                                {/* Emoji & More options (appears on hover) */}
+                                                                <div className={`absolute top-1/2 -translate-y-1/2 ${isOwn ? '-left-24' : '-right-24'} opacity-0 group-hover:opacity-100 transition-opacity z-10 flex items-center gap-1`}>
+                                                                    <button
+                                                                        onClick={() => setReplyingTo(msg)}
+                                                                        className="p-1.5 rounded-full bg-background border border-border hover:bg-muted text-muted-foreground transition-colors"
+                                                                    >
+                                                                        <Reply className="w-4 h-4" />
+                                                                    </button>
+
+                                                                    <DropdownMenu>
+                                                                        <DropdownMenuTrigger asChild>
+                                                                            <button className="p-1.5 rounded-full bg-background border border-border hover:bg-muted text-muted-foreground transition-colors">
+                                                                                <MoreVertical className="w-4 h-4" />
+                                                                            </button>
+                                                                        </DropdownMenuTrigger>
+                                                                        <DropdownMenuContent side="top" align="center" className="bg-[#1a1a2e] border-border shrink-0 min-w-[120px]">
+                                                                            <DropdownMenuItem onClick={() => togglePin(msg)} className="cursor-pointer">
+                                                                                {msg.is_pinned ? 'Unpin Message' : 'Pin Message'}
+                                                                            </DropdownMenuItem>
+                                                                        </DropdownMenuContent>
+                                                                    </DropdownMenu>
+
+                                                                    <DropdownMenu>
+                                                                        <DropdownMenuTrigger asChild>
+                                                                            <button className="p-1.5 rounded-full bg-background border border-border hover:bg-muted text-muted-foreground transition-colors">
+                                                                                <Smile className="w-4 h-4" />
+                                                                            </button>
+                                                                        </DropdownMenuTrigger>
+                                                                        <DropdownMenuContent side="top" align="center" className="flex items-center gap-1 p-1 min-w-0 bg-[#1a1a2e] border-border shrink-0">
+                                                                            {quickEmojis.map(e => (
+                                                                                <button
+                                                                                    key={e}
+                                                                                    onClick={() => toggleReaction(msg.id, e)}
+                                                                                    className="p-1.5 hover:bg-white/10 rounded-md transition-colors text-lg"
+                                                                                >
+                                                                                    {e}
+                                                                                </button>
+                                                                            ))}
+                                                                        </DropdownMenuContent>
+                                                                    </DropdownMenu>
+                                                                </div>
                                                             </div>
-
-                                                            {/* Reactions Display */}
-                                                            {(msg.message_reactions && msg.message_reactions.length > 0) && (
-                                                                <div className={`absolute -bottom-3 ${isOwn ? 'right-2' : 'left-2'} flex items-center gap-1 z-10`}>
-                                                                    {Object.entries(
-                                                                        msg.message_reactions.reduce((acc, r) => {
-                                                                            acc[r.emoji] = (acc[r.emoji] || 0) + 1;
-                                                                            return acc;
-                                                                        }, {} as Record<string, number>)
-                                                                    ).map(([emoji, count]) => (
-                                                                        <button
-                                                                            key={emoji}
-                                                                            onClick={() => toggleReaction(msg.id, emoji)}
-                                                                            className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] border border-border/50 shadow-sm ${msg.message_reactions?.some(r => r.user_id === user?.id && r.emoji === emoji) ? 'bg-primary/20 text-primary-foreground' : 'bg-background text-foreground'}`}
-                                                                        >
-                                                                            <span>{emoji}</span>
-                                                                            {count > 1 && <span>{count}</span>}
-                                                                        </button>
-                                                                    ))}
-                                                                </div>
-                                                            )}
                                                         </div>
-
-                                                        {/* Emoji & More options (appears on hover) */}
-                                                        <div className={`absolute top-1/2 -translate-y-1/2 ${isOwn ? '-left-24' : '-right-24'} opacity-0 group-hover:opacity-100 transition-opacity z-10 flex items-center gap-1`}>
-                                                            <button
-                                                                onClick={() => setReplyingTo(msg)}
-                                                                className="p-1.5 rounded-full bg-background border border-border hover:bg-muted text-muted-foreground transition-colors"
-                                                            >
-                                                                <Reply className="w-4 h-4" />
-                                                            </button>
-
-                                                            <DropdownMenu>
-                                                                <DropdownMenuTrigger asChild>
-                                                                    <button className="p-1.5 rounded-full bg-background border border-border hover:bg-muted text-muted-foreground transition-colors">
-                                                                        <MoreVertical className="w-4 h-4" />
-                                                                    </button>
-                                                                </DropdownMenuTrigger>
-                                                                <DropdownMenuContent side="top" align="center" className="bg-[#1a1a2e] border-border shrink-0 min-w-[120px]">
-                                                                    <DropdownMenuItem onClick={() => togglePin(msg)} className="cursor-pointer">
-                                                                        {msg.is_pinned ? 'Unpin Message' : 'Pin Message'}
-                                                                    </DropdownMenuItem>
-                                                                </DropdownMenuContent>
-                                                            </DropdownMenu>
-
-                                                            <DropdownMenu>
-                                                                <DropdownMenuTrigger asChild>
-                                                                    <button className="p-1.5 rounded-full bg-background border border-border hover:bg-muted text-muted-foreground transition-colors">
-                                                                        <Smile className="w-4 h-4" />
-                                                                    </button>
-                                                                </DropdownMenuTrigger>
-                                                                <DropdownMenuContent side="top" align="center" className="flex items-center gap-1 p-1 min-w-0 bg-[#1a1a2e] border-border shrink-0">
-                                                                    {quickEmojis.map(e => (
-                                                                        <button
-                                                                            key={e}
-                                                                            onClick={() => toggleReaction(msg.id, e)}
-                                                                            className="p-1.5 hover:bg-white/10 rounded-md transition-colors text-lg"
-                                                                        >
-                                                                            {e}
-                                                                        </button>
-                                                                    ))}
-                                                                </DropdownMenuContent>
-                                                            </DropdownMenu>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                ))}
-                                <div ref={messagesEndRef} />
+                                                    );
+                                                })}
+                                            </div>
+                                        ))}
+                                        <div ref={messagesEndRef} />
+                                    </>
+                                )}
                             </div>
 
                             {/* Input */}

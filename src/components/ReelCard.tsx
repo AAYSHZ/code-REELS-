@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { Heart, Share2, Bookmark, MessageCircle, Reply, CheckCircle, Repeat2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Heart, Share2, Bookmark, MessageCircle, Reply, CheckCircle, Repeat2, VolumeX, Volume2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
-import { getDifficultyBg, getCategoryColor, calculateWatchPoints, getCategorySkillKey, calculateCoins, calculateLevel, calculateTotalScore } from '@/utils/pointsEngine';
+import { calculateWatchPoints } from '@/utils/pointsEngine';
 import PointsToast from './PointsToast';
 import { toast } from 'sonner';
 import CommentSection from './CommentSection';
@@ -12,9 +12,6 @@ import { Link } from 'react-router-dom';
 import ReelOptionsMenu from './ReelOptionsMenu';
 import ReelRepostMenu from './ReelRepostMenu';
 import ShareReelModal from './ShareReelModal';
-import ClickSpark from './effects/ClickSpark';
-import GlitchText from './effects/GlitchText';
-import ShinyText from './effects/ShinyText';
 
 interface ReelCardProps {
   reel: any;
@@ -35,6 +32,7 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
   const [showShareModal, setShowShareModal] = useState(false);
   const [pointsToast, setPointsToast] = useState({ show: false, points: 0 });
   const [heartAnim, setHeartAnim] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
   const watchTracked = useRef(false);
 
   useEffect(() => {
@@ -64,18 +62,13 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
         { event: '*', schema: 'public', table: 'reel_likes', filter: `reel_id=eq.${reel.id}` },
         () => { checkLike(); }
       )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          console.log(`Subscribed to likes changes for ${reel.id}`);
-        }
-      });
+      .subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, [user, reel.id]);
 
   useEffect(() => {
     if (!user) return;
-    // We already derive liked from reel.liked_by, so we don't query reel_likes here.
     supabase.from('reel_saves').select('id').eq('reel_id', reel.id).eq('user_id', user.id).maybeSingle()
       .then(({ data }) => setSaved(!!data));
   }, [user, reel.id]);
@@ -135,11 +128,9 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
     }
 
     try {
-      const isCurrentlyLiked = liked; // optimism base
+      const isCurrentlyLiked = liked; 
 
       if (isCurrentlyLiked) {
-        // ── UNLIKE ──────────────────────────────────
-        // Optimistic UI update
         setLiked(false);
         setLikesCount((c: number) => Math.max(0, c - 1));
 
@@ -150,37 +141,22 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
           .eq('user_id', user.id);
 
         if (unlikeErr) {
-          console.error("Unlike error:", unlikeErr);
-          // Rollback
           setLiked(true);
           setLikesCount((c: number) => c + 1);
           return;
         }
 
-        const { error: decErr } = await supabase
-          .from('reels')
-          .update({ likes_count: Math.max(0, likesCount - 1) })
-          .eq('id', reel.id);
-
-        if (decErr) console.error("Error decrementing likes:", decErr);
+        await supabase.from('reels').update({ likes_count: Math.max(0, likesCount - 1) }).eq('id', reel.id);
 
         if (reel.uploaded_by !== user.id) {
-          const { error: xpError } = await supabase.rpc('award_xp', {
-            target_user_id: reel.uploaded_by,
-            xp_amount: -2,
-            points_type: 'creator'
-          });
-          if (xpError) console.error('XP reversal failed:', xpError);
+          await supabase.rpc('award_xp', { target_user_id: reel.uploaded_by, xp_amount: -2, points_type: 'creator' });
         }
       } else {
-        // ── LIKE ────────────────────────────────────
-        // Optimistic UI update
         setLiked(true);
         setLikesCount((c: number) => c + 1);
         setHeartAnim(true);
         setTimeout(() => setHeartAnim(false), 600);
 
-        // Bottom right toast
         toast.custom((t) => (
           <div className="bg-[#1A1A1A] border-l-4 border-[#6C63FF] rounded-lg p-3 flex flex-col gap-0.5 shadow-xl min-w-[200px]">
             <span className="text-lg font-bold text-[#6C63FF]">+2 XP</span>
@@ -188,42 +164,21 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
           </div>
         ), { position: 'bottom-right', duration: 2000 });
 
-        const { error: likeErr } = await supabase
-          .from('reel_likes')
-          .insert({ reel_id: reel.id, user_id: user.id });
+        const { error: likeErr } = await supabase.from('reel_likes').insert({ reel_id: reel.id, user_id: user.id });
 
         if (likeErr) {
-          console.error("Like error:", likeErr);
-          // Rollback
           setLiked(false);
           setLikesCount((c: number) => Math.max(0, c - 1));
           return;
         }
 
-        const { error: incErr } = await supabase
-          .from('reels')
-          .update({ likes_count: likesCount + 1 })
-          .eq('id', reel.id);
-
-        if (incErr) console.error("Error incrementing likes:", incErr);
+        await supabase.from('reels').update({ likes_count: likesCount + 1 }).eq('id', reel.id);
 
         if (reel.uploaded_by !== user.id) {
-          // Award XP
-          const { error: xpError } = await supabase.rpc('award_xp', {
-            target_user_id: reel.uploaded_by,
-            xp_amount: 2,
-            points_type: 'creator'
-          });
-          if (xpError) console.error('XP award failed:', xpError);
+          await supabase.rpc('award_xp', { target_user_id: reel.uploaded_by, xp_amount: 2, points_type: 'creator' });
 
-          // Insert like notification
           try {
-            const { data: likerProfile } = await supabase
-              .from('profiles')
-              .select('name, username')
-              .eq('user_id', user.id)
-              .single();
-
+            const { data: likerProfile } = await supabase.from('profiles').select('name, username').eq('user_id', user.id).single();
             const likerName = likerProfile?.name || likerProfile?.username || 'Someone';
             await supabase.from('notifications').insert({
               user_id: reel.uploaded_by,
@@ -250,49 +205,34 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
     } else {
       await supabase.from('reel_saves').insert({ reel_id: reel.id, user_id: user.id });
       setSaved(true);
-      const { error: xpError } = await supabase.rpc('award_xp', {
-        target_user_id: reel.uploaded_by,
-        xp_amount: 3,
-        points_type: 'creator'
-      });
-      if (xpError) console.error('XP award failed:', xpError);
+      await supabase.rpc('award_xp', { target_user_id: reel.uploaded_by, xp_amount: 3, points_type: 'creator' });
     }
   };
 
-  const handleShare = () => {
-    setShowShareModal(true);
-  };
-
-  // Difficulty label component
-  const DifficultyLabel = () => {
-    if (reel.difficulty === 'Hard') {
-      return <GlitchText text="HARD" className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${getDifficultyBg(reel.difficulty)}`} />;
-    }
-    return (
-      <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold border ${getDifficultyBg(reel.difficulty)}`}>
-        {reel.difficulty}
-      </span>
-    );
-  };
+  const handleShare = () => setShowShareModal(true);
 
   return (
     <>
       <div
         ref={containerRef}
-        className="relative w-full h-[calc(100vh-4rem)] md:h-[calc(100vh-4rem)] snap-start flex items-center justify-center bg-background"
+        className="relative w-full h-[100dvh] snap-start flex items-center justify-center max-w-[420px] mx-auto sm:rounded-2xl sm:shadow-2xl sm:shadow-black/50 overflow-hidden bg-black"
       >
         <video
           ref={videoRef}
           src={reel.video_url}
           loop
-          muted
+          muted={isMuted}
           playsInline
-          className="w-full h-full object-cover md:object-contain md:max-w-lg rounded-none md:rounded-2xl"
+          className="absolute inset-0 w-full h-full object-cover"
           onClick={() => {
             const v = videoRef.current;
             if (v) v.paused ? v.play() : v.pause();
           }}
         />
+
+        {/* Gradients */}
+        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-black/40 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
 
         {/* Options menu (three-dot) */}
         <ReelOptionsMenu
@@ -303,68 +243,91 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
           onDeleted={onDeleted || (() => { })}
         />
 
-        {/* Overlay info */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background/90 to-transparent md:max-w-lg md:mx-auto md:rounded-b-2xl">
-          <div className="flex gap-2 mb-2 items-center">
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold border ${getCategoryColor(reel.category)}`}>
+        {/* SOUND INDICATOR */}
+        <button 
+          onClick={() => setIsMuted(!isMuted)}
+          className="absolute top-4 right-4 bg-black/40 backdrop-blur-md rounded-full p-2 text-white hover:bg-black/60 transition-colors z-20"
+        >
+          {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+        </button>
+
+        {/* OVERLAY INFO (Bottom) */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 pb-6 z-10 w-full pr-16 border-t border-transparent">
+          {uploaderProfile && (
+            <div className="flex items-center gap-2 mb-2">
+              <Link to={`/profile/${reel.uploaded_by}`} className="flex items-center gap-2">
+                <div className="w-[36px] h-[36px] rounded-full bg-[#6C63FF] flex items-center justify-center text-sm font-bold text-white">
+                  {uploaderProfile.name?.charAt(0)?.toUpperCase() || 'U'}
+                </div>
+                <span className="font-semibold text-white drop-shadow-md">{uploaderProfile.name}</span>
+              </Link>
+              <span className="bg-[#6C63FF]/20 border border-[#6C63FF]/40 text-[#6C63FF] text-xs px-2 py-0.5 rounded-full ml-1 backdrop-blur-sm">
+                Lv.{uploaderProfile.level || 1}
+              </span>
+            </div>
+          )}
+
+          <h3 className="text-white font-semibold text-base mt-1 drop-shadow-md leading-snug">{reel.title}</h3>
+
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold backdrop-blur-sm ${
+              reel.category === 'DSA' ? 'bg-[#6C63FF]/15 border border-[#6C63FF]/30 text-[#6C63FF]' :
+              reel.category === 'Web Dev' ? 'bg-[#00D4AA]/15 border border-[#00D4AA]/30 text-[#00D4AA]' :
+              reel.category === 'AI-ML' ? 'bg-[#FFA502]/15 border border-[#FFA502]/30 text-[#FFA502]' :
+              reel.category === 'Hardware' ? 'bg-[#FF4757]/15 border border-[#FF4757]/30 text-[#FF4757]' :
+              'bg-white/8 border border-white/15 text-white/60'
+            }`}>
               {reel.category}
             </span>
-            <DifficultyLabel />
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold backdrop-blur-sm ${
+              reel.difficulty === 'Easy' ? 'bg-[#2ED573]/15 border border-[#2ED573]/30 text-[#2ED573]' :
+              reel.difficulty === 'Medium' ? 'bg-[#FFA502]/15 border border-[#FFA502]/30 text-[#FFA502]' :
+              reel.difficulty === 'Hard' ? 'bg-[#FF4757]/15 border border-[#FF4757]/30 text-[#FF4757]' :
+              'bg-white/8 border border-white/15 text-white/60'
+            }`}>
+              {reel.difficulty}
+            </span>
             {reel.is_best_solution && (
-              <span className="flex items-center gap-1">
-                <CheckCircle className="w-3 h-3 text-secondary" />
-                <ShinyText text="Verified Solution" className="text-[10px] font-mono font-semibold" />
+              <span className="flex items-center gap-1 ml-1 backdrop-blur-sm bg-black/20 px-2 py-0.5 rounded-full">
+                <CheckCircle className="w-3 h-3 text-[#00D4AA]" />
+                <span className="text-[10px] font-mono font-semibold text-[#00D4AA]">Verified Solution</span>
               </span>
             )}
           </div>
-
-          <h3 className="font-semibold text-foreground text-sm mb-1">{reel.title}</h3>
-
-          {uploaderProfile && (
-            <Link to={`/profile/${reel.uploaded_by}`} className="flex items-center gap-2 mb-2">
-              <div className="w-6 h-6 rounded-full gradient-primary flex items-center justify-center text-[10px] font-bold text-foreground">
-                {uploaderProfile.name?.charAt(0)?.toUpperCase() || 'U'}
-              </div>
-              <span className="text-xs text-muted-foreground">{uploaderProfile.name}</span>
-              <span className="text-[10px] font-mono text-primary">Lv.{uploaderProfile.level}</span>
-            </Link>
-          )}
         </div>
 
         {/* Right side actions */}
-        <div className="absolute right-3 bottom-32 flex flex-col items-center gap-4 md:right-[calc(50%-14rem)]">
-          <ClickSpark color="#ff4757">
-            <button onClick={handleLike} className="flex flex-col items-center gap-1">
-              <motion.div animate={heartAnim ? { scale: [1, 1.4, 1] } : {}} transition={{ duration: 0.3 }}>
-                <Heart className={`w-7 h-7 ${liked ? 'fill-destructive text-destructive' : 'text-foreground'}`} />
-              </motion.div>
-              <span className="text-xs text-foreground font-medium">{likesCount}</span>
-            </button>
-          </ClickSpark>
-
-          <button onClick={() => setShowComments(true)} className="flex flex-col items-center gap-1">
-            <MessageCircle className="w-7 h-7 text-foreground" />
-            <span className="text-xs text-foreground font-medium">Chat</span>
+        <div className="absolute right-3 bottom-24 flex flex-col items-center gap-5 z-20">
+          <button onClick={handleLike} className="flex flex-col items-center gap-1 group">
+            <motion.div animate={heartAnim ? { scale: [1, 1.4, 1] } : {}} transition={{ duration: 0.3 }}>
+              <Heart className={`w-[26px] h-[26px] transition-transform group-hover:scale-110 drop-shadow-md ${liked ? 'fill-[#FF4757] text-[#FF4757]' : 'text-white'}`} />
+            </motion.div>
+            <span className="text-xs text-white/90 font-medium drop-shadow-md">{likesCount}</span>
           </button>
 
-          <button onClick={() => setShowRepostMenu(true)} className="flex flex-col items-center gap-1">
-            <Repeat2 className="w-7 h-7 text-foreground" />
-            <span className="text-xs text-foreground font-medium">Repost</span>
+          <button onClick={() => setShowComments(true)} className="flex flex-col items-center gap-1 group">
+            <MessageCircle className="w-[26px] h-[26px] text-white transition-transform group-hover:scale-110 drop-shadow-md" />
+            <span className="text-xs text-white/90 font-medium drop-shadow-md">Chat</span>
           </button>
 
-          <button onClick={handleShare} className="flex flex-col items-center gap-1">
-            <Share2 className="w-7 h-7 text-foreground" />
-            <span className="text-xs text-foreground font-medium">{reel.shares_count}</span>
+          <button onClick={() => setShowRepostMenu(true)} className="flex flex-col items-center gap-1 group">
+            <Repeat2 className="w-[26px] h-[26px] text-white transition-transform group-hover:scale-110 drop-shadow-md" />
+            <span className="text-xs text-white/90 font-medium drop-shadow-md">Repost</span>
           </button>
 
-          <button onClick={handleSave} className="flex flex-col items-center gap-1">
-            <Bookmark className={`w-7 h-7 ${saved ? 'fill-primary text-primary' : 'text-foreground'}`} />
-            <span className="text-xs text-foreground font-medium">Save</span>
+          <button onClick={handleShare} className="flex flex-col items-center gap-1 group">
+            <Share2 className="w-[26px] h-[26px] text-white transition-transform group-hover:scale-110 drop-shadow-md" />
+            <span className="text-xs text-white/90 font-medium drop-shadow-md">{reel.shares_count}</span>
           </button>
 
-          <button onClick={() => setShowReplyUpload(true)} className="flex flex-col items-center gap-1">
-            <Reply className="w-7 h-7 text-foreground" />
-            <span className="text-xs text-foreground font-medium">Reply</span>
+          <button onClick={handleSave} className="flex flex-col items-center gap-1 group">
+            <Bookmark className={`w-[26px] h-[26px] transition-transform group-hover:scale-110 drop-shadow-md ${saved ? 'fill-[#6C63FF] text-[#6C63FF]' : 'text-white'}`} />
+            <span className="text-xs text-white/90 font-medium drop-shadow-md">Save</span>
+          </button>
+
+          <button onClick={() => setShowReplyUpload(true)} className="flex flex-col items-center gap-1 group">
+            <Reply className="w-[26px] h-[26px] text-white transition-transform group-hover:scale-110 drop-shadow-md" />
+            <span className="text-xs text-white/90 font-medium drop-shadow-md">Reply</span>
           </button>
         </div>
       </div>

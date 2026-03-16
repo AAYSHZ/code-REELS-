@@ -10,10 +10,10 @@ import FadeContent from '@/components/effects/FadeContent';
 import TiltedCard from '@/components/effects/TiltedCard';
 
 const TABS = [
-  { value: 'creator', label: 'Top Creator', icon: Star, sort: 'creator_points' },
-  { value: 'solver', label: 'Problem Solver', icon: Trophy, sort: 'xp' },
-  { value: 'helpful', label: 'Most Helpful', icon: Heart, sort: 'helper_points' },
-  { value: 'rising', label: 'Rising Star', icon: TrendingUp, sort: 'weekly_fpa' },
+  { value: 'creator', label: 'Top Creator', icon: Star, sort: 'creator_points', unit: 'PTS' },
+  { value: 'solver', label: 'Problem Solver', icon: Trophy, sort: 'xp', unit: 'XP' },
+  { value: 'helpful', label: 'Most Helpful', icon: Heart, sort: 'helper_points', unit: 'PTS' },
+  { value: 'rising', label: 'Rising Star', icon: TrendingUp, sort: 'weekly_fpa', unit: 'FPA' },
 ];
 
 const SKILLS = ['All', 'DSA', 'Web Dev', 'AI-ML', 'Hardware', 'Other'];
@@ -101,9 +101,13 @@ export default function Leaderboard() {
                         <span className={`w-8 font-bold text-center ${i === 0 ? 'text-[#FFD700]' : i === 1 ? 'text-[#C0C0C0]' : i === 2 ? 'text-[#CD7F32]' : 'text-gray-500'}`}>
                           #{i + 1}
                         </span>
-                        <div className="w-10 h-10 flex-shrink-0 rounded-full bg-gradient-to-tr from-[#6C63FF] to-[#00D4AA] flex items-center justify-center text-sm font-bold text-foreground">
-                          {u.name?.charAt(0)?.toUpperCase() || 'U'}
-                        </div>
+                        {u.avatar ? (
+                          <img src={u.avatar} alt={u.name || 'User'} className="w-10 h-10 flex-shrink-0 rounded-full object-cover" />
+                        ) : (
+                          <div className="w-10 h-10 flex-shrink-0 rounded-full bg-gradient-to-tr from-[#6C63FF] to-[#00D4AA] flex items-center justify-center text-sm font-bold text-foreground">
+                            {u.name?.charAt(0)?.toUpperCase() || 'U'}
+                          </div>
+                        )}
                         <div className="flex-1 flex flex-col items-start overflow-hidden">
                           <div className="flex items-center gap-2 w-full">
                             <p className="text-sm font-medium text-foreground truncate">{u.name}</p>
@@ -115,7 +119,7 @@ export default function Leaderboard() {
                         </div>
                         <div className="text-right">
                           <p className="text-sm font-bold text-foreground"><CountUp end={u[t.sort] || 0} duration={1.5} /></p>
-                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">XP</p>
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t.unit}</p>
                         </div>
                       </Link>
                     );
