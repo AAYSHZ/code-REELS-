@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Heart, Share2, Bookmark, MessageCircle, Reply, CheckCircle, Repeat2, VolumeX, Volume2 } from 'lucide-react';
+import { Share2, Bookmark, MessageCircle, Reply, CheckCircle, Repeat2, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
@@ -12,6 +12,7 @@ import { Link } from 'react-router-dom';
 import ReelOptionsMenu from './ReelOptionsMenu';
 import ReelRepostMenu from './ReelRepostMenu';
 import ShareReelModal from './ShareReelModal';
+import { HeartIcon, VolumeIcon } from '@/components/ui/animated-state-icons';
 
 interface ReelCardProps {
   reel: any;
@@ -285,9 +286,9 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
         {/* MUTE BUTTON */}
         <button 
           onClick={() => setIsMuted(!isMuted)}
-          className="absolute top-4 right-4 bg-black/30 backdrop-blur-sm rounded-full p-2 text-white hover:bg-black/50 transition-colors z-20"
+          className="absolute top-4 right-4 bg-black/30 backdrop-blur-sm rounded-full p-2 hover:bg-black/50 transition-colors z-20"
         >
-          {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+          <VolumeIcon size={22} color="white" muted={isMuted} />
         </button>
 
         {/* BOTTOM INFO OVERLAY */}
@@ -335,12 +336,15 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
 
         {/* RIGHT ACTION BUTTONS — TikTok style */}
         <div className="absolute right-3 bottom-28 sm:bottom-24 flex flex-col items-center gap-5 z-20">
-          <button onClick={handleLike} className="flex flex-col items-center gap-1">
-            <motion.div animate={heartAnim ? { scale: [1, 1.4, 1] } : {}} transition={{ duration: 0.3 }}>
-              <Heart className={`w-7 h-7 drop-shadow-lg ${liked ? 'fill-[#FF4757] text-[#FF4757]' : 'text-white'}`} />
-            </motion.div>
+          <div className="flex flex-col items-center gap-1">
+            <HeartIcon
+              size={28}
+              color={liked ? '#FF4757' : 'white'}
+              filled={liked}
+              onClick={handleLike}
+            />
             <span className="text-xs text-white/70 font-medium">{likesCount}</span>
-          </button>
+          </div>
 
           <button onClick={() => setShowComments(true)} className="flex flex-col items-center gap-1">
             <MessageCircle className="w-7 h-7 text-white drop-shadow-lg" />

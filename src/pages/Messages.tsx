@@ -5,6 +5,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Search, Send, MessageSquare, Loader2, MoreVertical, Check, CheckCheck, Smile, Reply, X, Mic, Square, Play, Pause, Image as ImageIcon } from 'lucide-react';
+import { SendIcon } from '@/components/ui/animated-state-icons';
 import { toast } from 'sonner';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Link } from 'react-router-dom';
@@ -1122,9 +1123,9 @@ export default function Messages() {
                                             type="submit"
                                             size="icon"
                                             disabled={sending || (!newMsg.trim() && !isRecording)}
-                                            className="gradient-primary glow-primary flex-shrink-0 rounded-full"
+                                            className="bg-white text-black hover:bg-white/90 flex-shrink-0 rounded-full w-9 h-9 flex items-center justify-center"
                                         >
-                                            <Send className="w-4 h-4 ml-1" />
+                                            <SendIcon size={22} color="black" sending={sending} />
                                         </Button>
                                     </form>
                                 </div>

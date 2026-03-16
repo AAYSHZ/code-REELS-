@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, Search, Plus, Trophy, Zap, Bell, User, LogOut, ShieldCheck, MessageSquare, Flame, PlusCircle } from 'lucide-react';
+import { NotificationIcon } from '@/components/ui/animated-state-icons';
 import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -125,7 +126,7 @@ export default function Navbar() {
                   className="relative"
                   onClick={() => setShowPanel(prev => !prev)}
                 >
-                  <Bell className="w-5 h-5" />
+                  <NotificationIcon size={22} color="white" hasNotification={unreadCount > 0} />
                   {unreadCount > 0 && (
                     <span
                       className="absolute -top-1 -right-1 flex items-center justify-center rounded-full bg-red-500 text-white animate-pulse"
