@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Search, PlusCircle, Trophy, Zap, Bell, User, LogOut, ShieldCheck, MessageSquare, Flame } from 'lucide-react';
+import { Home, Search, Plus, Trophy, Zap, Bell, User, LogOut, ShieldCheck, MessageSquare, Flame, PlusCircle } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,7 +10,6 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import UploadModal from './UploadModal';
 import NotificationPanel from './NotificationPanel';
 import BlurText from './effects/BlurText';
-import Dock from './effects/Dock';
 import Magnet from './effects/Magnet';
 import codereelsLogo from '@/assets/codereels-logo.png';
 
@@ -22,9 +21,6 @@ export default function Navbar() {
   const [showPanel, setShowPanel] = useState(false);
   const { notifications, unreadCount, markAllRead } = useNotifications();
   const [unreadDMs, setUnreadDMs] = useState(0);
-
-  console.log('Navbar profile data:', profile);
-  console.log('Navbar avatar URL:', profile?.avatar);
 
   // Fetch unread DM count
   useEffect(() => {
@@ -44,7 +40,7 @@ export default function Navbar() {
 
   const isActive = (path: string) => location.pathname === path;
 
-  const navItems = [
+  const desktopNavItems = [
     { path: '/', icon: Home, label: 'Home' },
     { path: '/search', icon: Search, label: 'Search' },
     { path: '/messages', icon: MessageSquare, label: 'Messages' },
@@ -52,30 +48,19 @@ export default function Navbar() {
     { path: '/challenges', icon: Zap, label: 'Challenges' },
   ];
 
-  const dockItems = [
-    ...navItems.map(n => ({
-      icon: <n.icon className="w-5 h-5" />,
-      label: n.label,
-      onClick: () => navigate(n.path),
-      active: isActive(n.path),
-    })),
-    {
-      icon: <PlusCircle className="w-5 h-5" />,
-      label: 'Upload',
-      onClick: () => setUploadOpen(true),
-      active: false,
-    },
-    ...(user ? [{
-      icon: <User className="w-5 h-5" />,
-      label: 'Profile',
-      onClick: () => navigate(`/profile/${user.id}`),
-      active: location.pathname.startsWith('/profile'),
-    }] : []),
+  // Bottom nav items for mobile
+  const bottomNavItems = [
+    { path: '/', icon: Home, label: 'Home' },
+    { path: '/search', icon: Search, label: 'Search' },
+    { path: '__upload__', icon: Plus, label: 'Upload', isUpload: true },
+    { path: '/messages', icon: MessageSquare, label: 'Messages' },
+    { path: user ? `/profile/${user.id}` : '/login', icon: User, label: 'Profile' },
   ];
 
   return (
     <>
-      <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-border">
+      {/* ── TOP NAVBAR: hidden on mobile, visible on md+ ── */}
+      <nav className="hidden md:block fixed top-0 left-0 right-0 z-50 glass border-b border-border">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
             <img src={codereelsLogo} alt="CodeReels" className="h-8 w-auto" />
@@ -83,8 +68,8 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-1">
-            {navItems.map(({ path, icon: Icon, label }) => (
+          <div className="flex items-center gap-1">
+            {desktopNavItems.map(({ path, icon: Icon, label }) => (
               <Link key={path} to={path}>
                 <Button
                   variant={isActive(path) ? 'default' : 'ghost'}
@@ -121,7 +106,7 @@ export default function Navbar() {
             {/* Streak Display */}
             {user && (
               <div
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full border border-white/10 bg-[#1A1A1A] cursor-help transition-colors mr-1"
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-white/10 bg-[#1A1A1A] cursor-help transition-colors mr-1"
                 title={`${profile?.streak_count || 0} day streak — upload daily to keep it`}
               >
                 <Flame className={`w-4 h-4 ${(profile?.streak_count || 0) > 0 ? 'text-[#FF4757]' : 'text-gray-500'}`} style={(profile?.streak_count || 0) > 0 ? { filter: 'drop-shadow(0 0 8px rgba(255,71,87,0.5))' } : {}} />
@@ -169,7 +154,7 @@ export default function Navbar() {
                   <div className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-muted transition-colors">
                     <Avatar className="w-8 h-8">
                       <AvatarImage src={profile?.avatar || undefined} />
-                      <AvatarFallback className="gradient-primary text-xs font-bold text-foreground">
+                      <AvatarFallback className="bg-white/10 text-xs font-bold text-white">
                         {profile?.name?.charAt(0)?.toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
@@ -181,7 +166,7 @@ export default function Navbar() {
                 </Link>
                 {profile?.role === 'admin' && (
                   <Link to="/admin">
-                    <Button variant="ghost" size="icon" className="text-purple-400 hover:text-purple-300">
+                    <Button variant="ghost" size="icon" className="text-white/50 hover:text-white">
                       <ShieldCheck className="w-5 h-5" />
                     </Button>
                   </Link>
@@ -193,16 +178,57 @@ export default function Navbar() {
             ) : (
               <div className="flex gap-2">
                 <Link to="/login"><Button variant="ghost" size="sm">Login</Button></Link>
-                <Link to="/register"><Button size="sm" className="gradient-primary">Register</Button></Link>
+                <Link to="/register"><Button size="sm" className="bg-white text-black hover:bg-white/90">Register</Button></Link>
               </div>
             )}
           </div>
         </div>
       </nav>
 
-      {/* Mobile Dock */}
-      <div className="md:hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-50">
-        <Dock items={dockItems} />
+      {/* ── BOTTOM NAV: visible on mobile only ── */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#080808]/90 backdrop-blur-xl border-t border-white/8 h-16" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <div className="flex items-center justify-around h-full px-2">
+          {bottomNavItems.map((item) => {
+            const active = item.path !== '__upload__' && (
+              item.path === '/' ? location.pathname === '/' :
+              location.pathname.startsWith(item.path)
+            );
+
+            // Upload button — special center item
+            if (item.isUpload) {
+              return (
+                <button
+                  key="upload"
+                  onClick={() => setUploadOpen(true)}
+                  className="flex items-center justify-center"
+                >
+                  <div className="w-11 h-11 rounded-full bg-white flex items-center justify-center shadow-lg shadow-white/10">
+                    <Plus className="w-6 h-6 text-black" />
+                  </div>
+                </button>
+              );
+            }
+
+            return (
+              <button
+                key={item.path}
+                onClick={() => navigate(item.path)}
+                className="flex flex-col items-center justify-center gap-0.5 relative"
+              >
+                <item.icon className={`w-[22px] h-[22px] ${active ? 'text-white' : 'text-white/30'}`} />
+                <span className={`text-[10px] font-medium ${active ? 'text-white' : 'text-white/30'}`}>{item.label}</span>
+                {item.label === 'Messages' && unreadDMs > 0 && (
+                  <span
+                    className="absolute -top-1 right-0 flex items-center justify-center rounded-full bg-white text-black font-bold"
+                    style={{ width: '14px', height: '14px', fontSize: '8px' }}
+                  >
+                    {unreadDMs > 9 ? '9+' : unreadDMs}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <UploadModal open={uploadOpen} onOpenChange={setUploadOpen} />
