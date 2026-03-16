@@ -731,6 +731,7 @@ export default function Messages() {
                         {/* Search results dropdown */}
                         {searchResults.length > 0 && (
                             <div className="mt-2 glass border border-border rounded-lg max-h-48 overflow-y-auto">
+                                {searchResults.map((u) => (
                                     <div
                                         key={u.user_id}
                                         role="button"
