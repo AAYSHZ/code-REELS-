@@ -39,22 +39,22 @@ export default function GettingStartedTab() {
                     <li>Filter by Category (DSA, Web Dev, AI-ML, Hardware)</li>
                     <li>Filter by Level (Easy, Medium, Hard)</li>
                     <li>
-                        Can't find what you need? Hit <span className="text-[#6C63FF] font-semibold">"Ask CR"</span> — our AI
+                        Can't find what you need? Hit <span className="text-white font-semibold">"Ask CR"</span> — our AI
                         searches the entire internet and gives you an answer with sources!
                     </li>
                 </ul>
             </div>
 
             {/* Reply With Reel */}
-            <div className={`${card} border-[#6C63FF]/30`}>
+            <div className={`${card} border-white/20/30`}>
                 <div className="flex items-center gap-2 mb-2">
                     <h3 className="text-base font-bold text-white">⭐ Reply With Reel</h3>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#6C63FF]/20 text-[#6C63FF] border border-[#6C63FF]/30 font-semibold">UNIQUE FEATURE</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/20 text-white border border-white/20/30 font-semibold">UNIQUE FEATURE</span>
                 </div>
                 <p className="text-sm text-white/70 leading-relaxed">
                     The most powerful feature on CodeReels. Post a coding problem as a reel.
                     Other developers reply with their own video explanations. The best reply
-                    gets marked as <span className="text-[#00D4AA] font-semibold">Best Solution</span> — earning massive bonus points for the solver.
+                    gets marked as <span className="text-white font-semibold">Best Solution</span> — earning massive bonus points for the solver.
                 </p>
             </div>
 
@@ -64,7 +64,7 @@ export default function GettingStartedTab() {
                 <div className="space-y-2">
                     {["Click Upload in the navbar", "Choose category and difficulty", "Add title and description", "Upload your video → earn +10 XP instantly"].map((step, i) => (
                         <div key={i} className="flex items-start gap-2.5 text-sm text-white/70">
-                            <span className="w-5 h-5 rounded-full bg-[#6C63FF]/20 text-[#6C63FF] text-[11px] flex items-center justify-center flex-shrink-0 font-bold mt-0.5">{i + 1}</span>
+                            <span className="w-5 h-5 rounded-full bg-white/20 text-white text-[11px] flex items-center justify-center flex-shrink-0 font-bold mt-0.5">{i + 1}</span>
                             <span>{step}</span>
                         </div>
                     ))}

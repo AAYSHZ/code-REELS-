@@ -63,6 +63,7 @@ export default function Messages() {
     const [searchResults, setSearchResults] = useState<SearchUser[]>([]);
     const [searching, setSearching] = useState(false);
     const [mobileShowChat, setMobileShowChat] = useState(false);
+    const [debugInfo, setDebugInfo] = useState<string | null>(null);
     const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
     const [replyingTo, setReplyingTo] = useState<Message | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -264,8 +265,12 @@ export default function Messages() {
             .eq('conversation_id', convoId)
             .order('created_at', { ascending: true });
         console.log('[DM DEBUG] Query result — data:', data?.length ?? 'null', 'error:', error);
+        console.log('[DM DEBUG] fetchMessages returned:', { dataLen: data?.length, error });
         if (error) {
             console.error('[DM DEBUG] ERROR fetching messages:', error);
+            setDebugInfo(JSON.stringify(error, null, 2));
+        } else {
+            setDebugInfo(data?.length === 0 ? "Query successful, but 0 messages returned from backend (Could be RLS policy)." : null);
         }
         if (data && data.length > 0) {
             console.log('[DM DEBUG] First message:', data[0].content, '| Last message:', data[data.length - 1].content);
@@ -839,6 +844,12 @@ export default function Messages() {
                                     )}
                                 </div>
                             </div>
+
+                            {debugInfo && (
+                                <div className="bg-red-900/50 border border-red-500 m-4 p-3 rounded text-xs text-red-200 font-mono whitespace-pre-wrap overflow-x-auto">
+                                    <strong>Debug Info:</strong> {debugInfo}
+                                </div>
+                            )}
 
                             {/* Pinned Message Banner */}
                             {(() => {

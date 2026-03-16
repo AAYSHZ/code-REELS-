@@ -179,7 +179,7 @@ export default function Profile() {
                 let badgeColor = 'bg-gray-800 text-gray-300 border-gray-700';
                 if (badge === 'Coder') badgeColor = 'bg-[#2ED573]/20 text-[#2ED573] border-[#2ED573]/30';
                 if (badge === 'Debugger') badgeColor = 'bg-[#FFA502]/20 text-[#FFA502] border-[#FFA502]/30';
-                if (badge === 'Architect') badgeColor = 'bg-[#6C63FF]/20 text-[#6C63FF] border-[#6C63FF]/30';
+                if (badge === 'Architect') badgeColor = 'bg-white/20 text-white border-white/20/30';
                 if (badge === 'Code Master') badgeColor = 'bg-gradient-to-r from-[#FFD700]/20 to-[#FFA502]/20 text-[#FFD700] border-[#FFD700]/30';
 
                 return (
@@ -253,7 +253,7 @@ export default function Profile() {
               size="sm"
               className={`flex-1 ${isFollowing ? 'glass border-border text-muted-foreground' : ''}`}
               variant={isFollowing ? 'outline' : 'default'}
-              style={!isFollowing ? { backgroundColor: '#6C63FF', color: '#fff' } : undefined}
+              style={!isFollowing ? { backgroundColor: '#ffffff', color: '#000000' } : undefined}
               onClick={handleFollow}
               disabled={followLoading}
             >
@@ -269,12 +269,12 @@ export default function Profile() {
               <p className="text-sm font-bold text-foreground">XP: {currentXp} / {xpForNextLevel}</p>
               <p className="text-xs text-muted-foreground mt-0.5">Level {currentLevel} — {profile.current_badge || 'Newcomer'}</p>
             </div>
-            <span className="text-xs font-medium text-[#6C63FF]">{Math.max(0, xpForNextLevel - currentXp)} XP to Level {currentLevel + 1}</span>
+            <span className="text-xs font-medium text-white">{Math.max(0, xpForNextLevel - currentXp)} XP to Level {currentLevel + 1}</span>
           </div>
-          <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden shadow-[0_0_8px_#6C63FF]">
+          <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden shadow-[0_0_8px_rgba(255,255,255,0.5)]">
             <motion.div
               className="h-full"
-              style={{ backgroundImage: 'linear-gradient(to right, #6C63FF, #00D4AA)' }}
+              style={{ backgroundImage: 'linear-gradient(to right, white, rgba(255,255,255,0.2))' }}
               initial={{ width: 0 }}
               animate={{ width: `${progressPercentage}%` }}
               transition={{ duration: 1, ease: 'easeOut' }}
@@ -315,18 +315,18 @@ export default function Profile() {
 
         {/* Points Breakdown */}
         <div className="grid grid-cols-3 gap-3 mb-6">
-          <div className="bg-[#1A1A1A] border border-white/5 border-l-4 border-l-[#6C63FF] rounded-xl p-3">
+          <div className="bg-[#1A1A1A] border border-white/5 border-l-4 border-l-white/30 rounded-xl p-3">
             <p className="text-xl font-bold text-foreground"><CountUp end={profile.creator_points} /></p>
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Creator</p>
             <div className="h-0.5 w-full bg-white/5 rounded-full overflow-hidden">
-              <div className="h-full bg-[#6C63FF]" style={{ width: '100%' }} />
+              <div className="h-full bg-white" style={{ width: '100%' }} />
             </div>
           </div>
-          <div className="bg-[#1A1A1A] border border-white/5 border-l-4 border-l-[#00D4AA] rounded-xl p-3">
+          <div className="bg-[#1A1A1A] border border-white/5 border-l-4 border-l-white/30 rounded-xl p-3">
             <p className="text-xl font-bold text-foreground"><CountUp end={profile.helper_points} /></p>
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Helper</p>
             <div className="h-0.5 w-full bg-white/5 rounded-full overflow-hidden">
-              <div className="h-full bg-[#00D4AA]" style={{ width: '100%' }} />
+              <div className="h-full bg-white" style={{ width: '100%' }} />
             </div>
           </div>
           <div className="bg-[#1A1A1A] border border-white/5 border-l-4 border-l-[#FFA502] rounded-xl p-3">
@@ -352,7 +352,7 @@ export default function Profile() {
               let badgeColor = 'bg-gray-800 text-gray-300 border-gray-700';
               if (badge === 'Coder') badgeColor = 'bg-[#2ED573]/20 text-[#2ED573] border-[#2ED573]/30';
               if (badge === 'Debugger') badgeColor = 'bg-[#FFA502]/20 text-[#FFA502] border-[#FFA502]/30';
-              if (badge === 'Architect') badgeColor = 'bg-[#6C63FF]/20 text-[#6C63FF] border-[#6C63FF]/30';
+              if (badge === 'Architect') badgeColor = 'bg-white/20 text-white border-white/20/30';
               if (badge === 'Code Master') badgeColor = 'bg-gradient-to-r from-[#FFD700]/20 to-[#FFA502]/20 text-[#FFD700] border-[#FFD700]/30';
 
               return (

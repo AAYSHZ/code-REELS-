@@ -35,7 +35,7 @@ export default function HelpButton() {
                     onMouseEnter={() => setHovered(true)}
                     onMouseLeave={() => setHovered(false)}
                     className="w-14 h-14 rounded-full flex items-center justify-center text-white shadow-lg animate-help-pulse transition-transform hover:scale-110 active:scale-95"
-                    style={{ background: "linear-gradient(135deg, #6C63FF, #00D4AA)" }}
+                    style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.2), transparent)" }}
                     aria-label="Open help guide"
                 >
                     <HelpCircle className="w-6 h-6" />

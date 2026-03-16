@@ -158,8 +158,8 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
         setTimeout(() => setHeartAnim(false), 600);
 
         toast.custom((t) => (
-          <div className="bg-[#1A1A1A] border-l-4 border-[#6C63FF] rounded-lg p-3 flex flex-col gap-0.5 shadow-xl min-w-[200px]">
-            <span className="text-lg font-bold text-[#6C63FF]">+2 XP</span>
+          <div className="bg-[#1A1A1A] border-l-4 border-white rounded-lg p-3 flex flex-col gap-0.5 shadow-xl min-w-[200px]">
+            <span className="text-lg font-bold text-white">+2 XP</span>
             <span className="text-xs text-gray-400">Creator Points</span>
           </div>
         ), { position: 'bottom-right', duration: 2000 });
@@ -256,12 +256,12 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
           {uploaderProfile && (
             <div className="flex items-center gap-2 mb-2">
               <Link to={`/profile/${reel.uploaded_by}`} className="flex items-center gap-2">
-                <div className="w-[36px] h-[36px] rounded-full bg-[#6C63FF] flex items-center justify-center text-sm font-bold text-white">
+                <div className="w-[36px] h-[36px] rounded-full bg-white flex items-center justify-center text-sm font-bold text-black">
                   {uploaderProfile.name?.charAt(0)?.toUpperCase() || 'U'}
                 </div>
                 <span className="font-semibold text-white drop-shadow-md">{uploaderProfile.name}</span>
               </Link>
-              <span className="bg-[#6C63FF]/20 border border-[#6C63FF]/40 text-[#6C63FF] text-xs px-2 py-0.5 rounded-full ml-1 backdrop-blur-sm">
+              <span className="bg-white/8 border border-white/15 text-white/70 text-xs px-2 py-0.5 rounded-full ml-1 backdrop-blur-sm">
                 Lv.{uploaderProfile.level || 1}
               </span>
             </div>
@@ -270,27 +270,21 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
           <h3 className="text-white font-semibold text-base mt-1 drop-shadow-md leading-snug">{reel.title}</h3>
 
           <div className="flex items-center gap-2 mt-2 flex-wrap">
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold backdrop-blur-sm ${
-              reel.category === 'DSA' ? 'bg-[#6C63FF]/15 border border-[#6C63FF]/30 text-[#6C63FF]' :
-              reel.category === 'Web Dev' ? 'bg-[#00D4AA]/15 border border-[#00D4AA]/30 text-[#00D4AA]' :
-              reel.category === 'AI-ML' ? 'bg-[#FFA502]/15 border border-[#FFA502]/30 text-[#FFA502]' :
-              reel.category === 'Hardware' ? 'bg-[#FF4757]/15 border border-[#FF4757]/30 text-[#FF4757]' :
-              'bg-white/8 border border-white/15 text-white/60'
-            }`}>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold backdrop-blur-sm bg-white/8 border border-white/15 text-white/70">
               {reel.category}
             </span>
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold backdrop-blur-sm ${
-              reel.difficulty === 'Easy' ? 'bg-[#2ED573]/15 border border-[#2ED573]/30 text-[#2ED573]' :
-              reel.difficulty === 'Medium' ? 'bg-[#FFA502]/15 border border-[#FFA502]/30 text-[#FFA502]' :
-              reel.difficulty === 'Hard' ? 'bg-[#FF4757]/15 border border-[#FF4757]/30 text-[#FF4757]' :
+              reel.difficulty === 'Easy' ? 'bg-white/8 border border-white/15 text-white/70' :
+              reel.difficulty === 'Medium' ? 'bg-white/8 border border-[#FFA502]/30 text-[#FFA502]' :
+              reel.difficulty === 'Hard' ? 'bg-white/8 border border-[#FF4757]/30 text-[#FF4757]' :
               'bg-white/8 border border-white/15 text-white/60'
             }`}>
               {reel.difficulty}
             </span>
             {reel.is_best_solution && (
               <span className="flex items-center gap-1 ml-1 backdrop-blur-sm bg-black/20 px-2 py-0.5 rounded-full">
-                <CheckCircle className="w-3 h-3 text-[#00D4AA]" />
-                <span className="text-[10px] font-mono font-semibold text-[#00D4AA]">Verified Solution</span>
+                <CheckCircle className="w-3 h-3 text-white" />
+                <span className="text-[10px] font-mono font-semibold text-white">Verified Solution</span>
               </span>
             )}
           </div>
@@ -321,7 +315,7 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
           </button>
 
           <button onClick={handleSave} className="flex flex-col items-center gap-1 group">
-            <Bookmark className={`w-[26px] h-[26px] transition-transform group-hover:scale-110 drop-shadow-md ${saved ? 'fill-[#6C63FF] text-[#6C63FF]' : 'text-white'}`} />
+            <Bookmark className={`w-[26px] h-[26px] transition-transform group-hover:scale-110 drop-shadow-md ${saved ? 'fill-white text-white' : 'text-white'}`} />
             <span className="text-xs text-white/90 font-medium drop-shadow-md">Save</span>
           </button>
 

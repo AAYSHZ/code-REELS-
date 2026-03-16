@@ -25,8 +25,8 @@ export default function SkillRadarChart({ skillPoints }: SkillRadarChartProps) {
         <Radar
           name="Skills"
           dataKey="value"
-          stroke="#6C63FF"
-          fill="#6C63FF"
+          stroke="#ffffff"
+          fill="#ffffff"
           fillOpacity={0.2}
           strokeWidth={2}
         />

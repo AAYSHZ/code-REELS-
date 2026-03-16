@@ -34,7 +34,7 @@ export default function XpLevelsTab() {
                                 <p className="text-sm text-white/90 font-medium truncate">{a.label}</p>
                                 <p className="text-[11px] text-white/50">{a.type}</p>
                             </div>
-                            <span className="text-sm font-bold text-[#00D4AA] flex-shrink-0">{a.xp}</span>
+                            <span className="text-sm font-bold text-white flex-shrink-0">{a.xp}</span>
                         </div>
                     ))}
                 </div>
@@ -46,17 +46,17 @@ export default function XpLevelsTab() {
                 <p className="text-xs text-white/40 mb-4 font-mono">Formula: Level = √(XP ÷ 10)</p>
                 <div className="relative">
                     {/* connecting line */}
-                    <div className="absolute left-[15px] top-3 bottom-3 w-0.5 bg-gradient-to-b from-[#6C63FF] to-[#00D4AA]" />
+                    <div className="absolute left-[15px] top-3 bottom-3 w-0.5 bg-gradient-to-b from-white/20 to-transparent" />
                     <div className="space-y-3">
                         {levels.map((l, i) => (
                             <div key={i} className="flex items-center gap-4 relative">
-                                <div className="w-[30px] h-[30px] rounded-full bg-[#1A1A1A] border-2 border-[#6C63FF] flex items-center justify-center text-[10px] font-bold text-[#6C63FF] z-10 flex-shrink-0">
+                                <div className="w-[30px] h-[30px] rounded-full bg-[#1A1A1A] border-2 border-white/20 flex items-center justify-center text-[10px] font-bold text-white z-10 flex-shrink-0">
                                     {l.lv}
                                 </div>
                                 <div className={`${card} flex-1`}>
                                     <div className="flex items-center justify-between flex-wrap gap-1">
                                         <span className="text-sm font-bold text-white">{l.name}</span>
-                                        <span className="text-[11px] font-mono text-[#00D4AA]">{l.xp} XP</span>
+                                        <span className="text-[11px] font-mono text-white">{l.xp} XP</span>
                                     </div>
                                     <p className="text-[11px] text-white/50 mt-0.5">{l.perk}</p>
                                 </div>
@@ -71,7 +71,7 @@ export default function XpLevelsTab() {
                 <h3 className="text-base font-bold text-white mb-2">🪙 Coins</h3>
                 <p className="text-sm text-white/70 leading-relaxed">
                     Coins = XP ÷ 10. Coins will unlock a marketplace for profile customizations,
-                    exclusive frames, and platform perks — <span className="text-[#6C63FF] font-semibold">coming soon.</span>
+                    exclusive frames, and platform perks — <span className="text-white font-semibold">coming soon.</span>
                 </p>
             </div>
 

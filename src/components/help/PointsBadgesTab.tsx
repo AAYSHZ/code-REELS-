@@ -52,11 +52,11 @@ export default function PointsBadgesTab() {
             <div>
                 <h3 className="text-base font-bold text-white mb-3">🎖️ Badge Tiers</h3>
                 <div className="relative">
-                    <div className="absolute left-[15px] top-3 bottom-3 w-0.5 bg-gradient-to-b from-[#6C63FF] to-[#00D4AA]" />
+                    <div className="absolute left-[15px] top-3 bottom-3 w-0.5 bg-gradient-to-b from-white/20 to-transparent" />
                     <div className="space-y-2.5">
                         {badges.map((b, i) => (
                             <div key={i} className="flex items-center gap-3 relative">
-                                <div className="w-[30px] h-[30px] rounded-full bg-[#1A1A1A] border-2 border-[#6C63FF] flex items-center justify-center text-sm z-10 flex-shrink-0">
+                                <div className="w-[30px] h-[30px] rounded-full bg-[#1A1A1A] border-2 border-white/20 flex items-center justify-center text-sm z-10 flex-shrink-0">
                                     {b.icon}
                                 </div>
                                 <div className="flex-1 flex items-center justify-between flex-wrap gap-1">
@@ -76,11 +76,11 @@ export default function PointsBadgesTab() {
                 <div className="space-y-2">
                     <div className="flex items-center gap-3 text-sm">
                         <span className="text-white/90 font-medium">Day 7</span>
-                        <span className="text-[#00D4AA] font-mono text-xs">+70 bonus points + Streak Badge</span>
+                        <span className="text-white font-mono text-xs">+70 bonus points + Streak Badge</span>
                     </div>
                     <div className="flex items-center gap-3 text-sm">
                         <span className="text-white/90 font-medium">Day 30</span>
-                        <span className="text-[#00D4AA] font-mono text-xs">+300 bonus points + Exclusive Monthly Badge</span>
+                        <span className="text-white font-mono text-xs">+300 bonus points + Exclusive Monthly Badge</span>
                     </div>
                     <div className="flex items-center gap-3 text-sm text-red-400">
                         <span className="font-medium">Miss a day</span>
@@ -98,7 +98,7 @@ export default function PointsBadgesTab() {
                             <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] flex-shrink-0 ${m.unlocked ? "bg-green-500/20 text-green-400" : "bg-white/5 text-white/30"}`}>
                                 {m.unlocked ? "✓" : "🔒"}
                             </div>
-                            <span className="text-sm font-mono text-[#6C63FF] flex-shrink-0 w-16">{m.pts}</span>
+                            <span className="text-sm font-mono text-white flex-shrink-0 w-16">{m.pts}</span>
                             <span className="text-sm text-white/70">{m.label}</span>
                         </div>
                     ))}

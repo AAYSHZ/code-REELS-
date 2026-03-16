@@ -26,14 +26,14 @@ export default function LevelUpCelebration({ level, badge, show, onDone }: Level
             angle: 60,
             spread: 55,
             origin: { x: 0 },
-            colors: ['#6C63FF', '#00D4AA']
+            colors: ['#ffffff', '#aaaaaa']
           });
           confetti({
             particleCount: 5,
             angle: 120,
             spread: 55,
             origin: { x: 1 },
-            colors: ['#6C63FF', '#00D4AA']
+            colors: ['#ffffff', '#aaaaaa']
           });
 
           if (Date.now() < end) {
@@ -68,14 +68,14 @@ export default function LevelUpCelebration({ level, badge, show, onDone }: Level
             transition={{ type: "spring", damping: 20, stiffness: 300 }}
             className="text-center"
           >
-            <h1 className="text-5xl font-extrabold mb-6 bg-gradient-to-r from-[#6C63FF] to-[#00D4AA] text-transparent bg-clip-text">
+            <h1 className="text-5xl font-extrabold mb-6 bg-gradient-to-r from-white/20 to-transparent text-transparent bg-clip-text">
               LEVEL UP
             </h1>
             <p className="text-xl text-white/80 font-medium mb-2">
               You reached Level {level}
             </p>
             {badge && (
-              <p className="text-sm font-mono text-[#00D4AA] mt-3">
+              <p className="text-sm font-mono text-white mt-3">
                 New Badge: {badge}
               </p>
             )}

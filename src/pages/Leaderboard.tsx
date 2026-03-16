@@ -93,7 +93,7 @@ export default function Leaderboard() {
                     let badgeColor = 'bg-gray-800 text-gray-300 border-gray-700';
                     if (badge === 'Coder') badgeColor = 'bg-[#2ED573]/20 text-[#2ED573] border-[#2ED573]/30';
                     if (badge === 'Debugger') badgeColor = 'bg-[#FFA502]/20 text-[#FFA502] border-[#FFA502]/30';
-                    if (badge === 'Architect') badgeColor = 'bg-[#6C63FF]/20 text-[#6C63FF] border-[#6C63FF]/30';
+                    if (badge === 'Architect') badgeColor = 'bg-white/20 text-white border-white/20/30';
                     if (badge === 'Code Master') badgeColor = 'bg-gradient-to-r from-[#FFD700]/20 to-[#FFA502]/20 text-[#FFD700] border-[#FFD700]/30';
 
                     return (
@@ -104,7 +104,7 @@ export default function Leaderboard() {
                         {u.avatar ? (
                           <img src={u.avatar} alt={u.name || 'User'} className="w-10 h-10 flex-shrink-0 rounded-full object-cover" />
                         ) : (
-                          <div className="w-10 h-10 flex-shrink-0 rounded-full bg-gradient-to-tr from-[#6C63FF] to-[#00D4AA] flex items-center justify-center text-sm font-bold text-foreground">
+                          <div className="w-10 h-10 flex-shrink-0 rounded-full bg-gradient-to-tr from-white/20 to-transparent flex items-center justify-center text-sm font-bold text-foreground">
                             {u.name?.charAt(0)?.toUpperCase() || 'U'}
                           </div>
                         )}
@@ -115,7 +115,7 @@ export default function Leaderboard() {
                               {badge}
                             </span>
                           </div>
-                          <p className="text-[10px] font-mono text-[#6C63FF] mt-0.5">Lv.{u.level || 1}</p>
+                          <p className="text-[10px] font-mono text-white mt-0.5">Lv.{u.level || 1}</p>
                         </div>
                         <div className="text-right">
                           <p className="text-sm font-bold text-foreground"><CountUp end={u[t.sort] || 0} duration={1.5} /></p>

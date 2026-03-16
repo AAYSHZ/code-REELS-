@@ -83,7 +83,7 @@ export default function HelpModal({ open, onClose }: Props) {
                         {/* Header */}
                         <div className="text-center pt-6 pb-2 px-4">
                             <h2 className="text-2xl sm:text-3xl font-extrabold">
-                                <span className="bg-gradient-to-r from-[#6C63FF] to-[#00D4AA] bg-clip-text text-transparent">CodeReels</span>
+                                <span className="bg-gradient-to-r from-white/20 to-transparent bg-clip-text text-transparent">CodeReels</span>
                             </h2>
                             <p className="text-sm text-white/50 mt-1">Platform Guide</p>
                         </div>
@@ -99,7 +99,7 @@ export default function HelpModal({ open, onClose }: Props) {
                                     data-tab={t.id}
                                     onClick={() => setActiveTab(t.id)}
                                     className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all flex-shrink-0 ${activeTab === t.id
-                                            ? "border-b-2 border-[#6C63FF] text-[#6C63FF] bg-[#6C63FF]/10"
+                                            ? "border-b-2 border-white/20 text-white bg-white/10"
                                             : "text-white/50 hover:text-white/80 hover:bg-white/5"
                                         }`}
                                 >

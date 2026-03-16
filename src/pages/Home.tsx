@@ -37,26 +37,26 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen pt-16 bg-[#080b0f]">
-        <div className="w-8 h-8 border-2 border-[#6C63FF] border-t-transparent rounded-full animate-spin" />
+      <div className="flex items-center justify-center min-h-screen pt-16 bg-[#080808]">
+        <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   if (reels.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen pt-16 px-4 relative overflow-hidden bg-[#080b0f]">
+      <div className="flex flex-col items-center justify-center min-h-screen pt-16 px-4 relative overflow-hidden bg-[#080808]">
         <div 
           className="fixed inset-0 z-0 pointer-events-none" 
           style={{
-            backgroundImage: 'radial-gradient(rgba(108,99,255,0.06) 1.5px, transparent 1.5px)',
+            backgroundImage: 'radial-gradient(rgba(255,255,255,0.06) 1.5px, transparent 1.5px)',
             backgroundSize: '24px 24px'
           }}
         />
-        <div className="fixed h-[600px] w-[600px] rounded-full bg-[#6C63FF]/5 blur-[150px] -left-40 top-1/2 -translate-y-1/2 pointer-events-none z-0" />
+        <div className="fixed h-[600px] w-[600px] rounded-full bg-white/4 blur-[150px] -left-40 top-1/2 -translate-y-1/2 pointer-events-none z-0" />
         <FadeContent className="text-center max-w-md relative z-10">
-          <div className="w-24 h-24 rounded-2xl bg-[#6C63FF] shadow-lg shadow-[#6C63FF]/20 flex items-center justify-center mx-auto mb-6">
-            <BlurText text="CR" className="text-4xl font-bold text-white" />
+          <div className="w-24 h-24 rounded-2xl bg-white shadow-lg shadow-white/10 flex items-center justify-center mx-auto mb-6">
+            <BlurText text="CR" className="text-4xl font-bold text-black" />
           </div>
           <h1 className="text-4xl font-bold mb-3 text-white">
             <BlurText text="CodeReels" className="" delay={0.3} />
@@ -66,7 +66,7 @@ export default function Home() {
           </p>
           <div className="flex justify-center gap-3">
             {['DSA', 'Web Dev', 'AI-ML', 'Hardware', 'Other'].map((cat, i) => (
-              <span key={cat} className="px-3 py-1 rounded-full text-xs font-mono border border-white/10 text-white/60 bg-white/5">
+              <span key={cat} className="px-3 py-1 rounded-full text-xs font-mono border border-white/15 text-white/70 bg-white/8">
                 {cat}
               </span>
             ))}
@@ -77,15 +77,15 @@ export default function Home() {
   }
 
   return (
-    <div className="relative min-h-screen bg-[#080b0f]">
+    <div className="relative min-h-screen bg-[#080808]">
       <div 
         className="fixed inset-0 z-0 pointer-events-none" 
         style={{
-          backgroundImage: 'radial-gradient(rgba(108,99,255,0.06) 1.5px, transparent 1.5px)',
+          backgroundImage: 'radial-gradient(rgba(255,255,255,0.06) 1.5px, transparent 1.5px)',
           backgroundSize: '24px 24px'
         }}
       />
-      <div className="fixed h-[600px] w-[600px] rounded-full bg-[#6C63FF]/5 blur-[150px] -left-40 top-1/2 -translate-y-1/2 pointer-events-none z-0" />
+      <div className="fixed h-[600px] w-[600px] rounded-full bg-white/4 blur-[150px] -left-40 top-1/2 -translate-y-1/2 pointer-events-none z-0" />
       
       <div className="relative z-10 pt-16 pb-20 md:pb-0 snap-y snap-mandatory h-[100dvh] overflow-y-scroll scrollbar-hide">
         {reels.map(reel => (

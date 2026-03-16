@@ -20,7 +20,7 @@ export default function HowItWorksTab() {
                         { step: 3, text: "Based on performance, pushed to more users:" },
                     ].map((s) => (
                         <div key={s.step} className="flex items-start gap-3 text-sm">
-                            <span className="w-6 h-6 rounded-full bg-[#6C63FF]/20 text-[#6C63FF] text-xs flex items-center justify-center flex-shrink-0 font-bold mt-0.5">{s.step}</span>
+                            <span className="w-6 h-6 rounded-full bg-white/20 text-white text-xs flex items-center justify-center flex-shrink-0 font-bold mt-0.5">{s.step}</span>
                             <span className="text-white/70">{s.text}</span>
                         </div>
                     ))}
@@ -35,7 +35,7 @@ export default function HowItWorksTab() {
                         </div>
                         <div className="flex items-center gap-2">
                             <span className="text-white/50">Score &gt; 0.75 →</span>
-                            <span className="text-[#00D4AA] font-mono font-bold">20,000 users (VIRAL 🔥)</span>
+                            <span className="text-white font-mono font-bold">20,000 users (VIRAL 🔥)</span>
                         </div>
                     </div>
                 </div>
@@ -78,16 +78,16 @@ export default function HowItWorksTab() {
                 <p className="text-sm text-white/70 mb-3">The more trusted you are, the more you earn.</p>
                 <div className="space-y-2 text-sm">
                     <div className="flex items-center justify-between">
-                        <span className="font-mono text-[#6C63FF]">RS = 3,000</span>
-                        <span className="text-white/70">you earn <span className="text-[#00D4AA] font-bold">30% more</span> points per reel</span>
+                        <span className="font-mono text-white">RS = 3,000</span>
+                        <span className="text-white/70">you earn <span className="text-white font-bold">30% more</span> points per reel</span>
                     </div>
                     <div className="flex items-center justify-between">
-                        <span className="font-mono text-[#6C63FF]">RS = 5,000</span>
-                        <span className="text-white/70">your content reaches <span className="text-[#00D4AA] font-bold">20% more</span> users</span>
+                        <span className="font-mono text-white">RS = 5,000</span>
+                        <span className="text-white/70">your content reaches <span className="text-white font-bold">20% more</span> users</span>
                     </div>
                     <div className="flex items-center justify-between">
-                        <span className="font-mono text-[#6C63FF]">RS = 20,000</span>
-                        <span className="text-white/70">your content reaches <span className="text-[#00D4AA] font-bold">50% more</span> users</span>
+                        <span className="font-mono text-white">RS = 20,000</span>
+                        <span className="text-white/70">your content reaches <span className="text-white font-bold">50% more</span> users</span>
                     </div>
                 </div>
             </div>

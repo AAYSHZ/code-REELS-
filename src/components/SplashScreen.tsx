@@ -118,7 +118,7 @@ export default function SplashScreen() {
                         transition={{ duration: 2, ease: 'easeInOut' }}
                         style={{
                             height: '100%',
-                            backgroundColor: '#00D4AA',
+                            backgroundColor: '#ffffff',
                             borderRadius: '9999px',
                         }}
                     />

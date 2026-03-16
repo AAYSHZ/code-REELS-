@@ -25,8 +25,8 @@ export default function PointsToast({ points, show, onDone, type = "Creator Poin
           exit={{ opacity: 0, x: 50 }}
           className="fixed bottom-24 right-6 z-50 pointer-events-none"
         >
-          <div className="bg-[#1A1A1A] border border-white/10 border-l-4 border-l-[#6C63FF] rounded-lg p-4 flex flex-col gap-0.5 shadow-2xl min-w-[200px]">
-            <span className="text-lg font-bold text-[#6C63FF]">+{points} XP</span>
+          <div className="bg-[#1A1A1A] border border-white/10 border-l-4 border-l-white/30 rounded-lg p-4 flex flex-col gap-0.5 shadow-2xl min-w-[200px]">
+            <span className="text-lg font-bold text-white">+{points} XP</span>
             <span className="text-xs text-gray-400">{type}</span>
           </div>
         </motion.div>

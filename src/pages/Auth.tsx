@@ -65,16 +65,16 @@ export default function Auth() {
         <div 
           className="absolute inset-0 z-0 opacity-100" 
           style={{
-            backgroundImage: 'radial-gradient(rgba(108,99,255,0.15) 1.5px, transparent 1.5px)',
+            backgroundImage: 'radial-gradient(rgba(255,255,255,0.06) 1.5px, transparent 1.5px)',
             backgroundSize: '24px 24px'
           }}
         />
-        <div className="absolute -left-20 -top-20 h-96 w-96 rounded-full bg-[#6C63FF]/10 blur-[120px] pointer-events-none z-0" />
-        <div className="absolute bottom-10 right-10 h-80 w-80 rounded-full bg-[#00D4AA]/8 blur-[100px] pointer-events-none z-0" />
+        <div className="absolute -left-20 -top-20 h-96 w-96 rounded-full bg-white/5 blur-[120px] pointer-events-none z-0" />
+        <div className="absolute bottom-10 right-10 h-80 w-80 rounded-full bg-white/5 blur-[100px] pointer-events-none z-0" />
 
         <div className="relative z-10 w-full max-w-2xl mx-auto px-12 xl:px-20 flex flex-col items-start gap-8">
-          <div className="w-20 h-20 rounded-2xl bg-[#6C63FF] flex items-center justify-center shadow-lg shadow-[#6C63FF]/20">
-            <Play className="w-10 h-10 text-white fill-white ml-2" />
+          <div className="w-20 h-20 rounded-2xl bg-white flex items-center justify-center shadow-lg shadow-white/10">
+            <Play className="w-10 h-10 text-black fill-black ml-2" />
           </div>
 
           <div className="flex flex-col gap-4 max-w-lg">
@@ -134,7 +134,7 @@ export default function Auth() {
             <button
               onClick={() => { setTab('login'); setPassword(''); }}
               className={`flex-1 pb-3 text-sm font-medium transition-colors cursor-pointer ${
-                tab === 'login' ? 'text-white border-b-2 border-[#6C63FF]' : 'text-white/30 border-b-2 border-transparent'
+                tab === 'login' ? 'text-white border-b-2 border-white' : 'text-white/30 border-b-2 border-transparent hover:text-white/70'
               }`}
             >
               Sign In
@@ -142,7 +142,7 @@ export default function Auth() {
             <button
               onClick={() => { setTab('register'); setPassword(''); }}
               className={`flex-1 pb-3 text-sm font-medium transition-colors cursor-pointer ${
-                tab === 'register' ? 'text-white border-b-2 border-[#6C63FF]' : 'text-white/30 border-b-2 border-transparent'
+                tab === 'register' ? 'text-white border-b-2 border-white' : 'text-white/30 border-b-2 border-transparent hover:text-white/70'
               }`}
             >
               Create Account
@@ -158,7 +158,7 @@ export default function Auth() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Your Name"
-                  className="bg-[#080b0f] border border-white/10 border-solid rounded-lg px-4 py-3 text-white placeholder-white/20 focus:border-[#6C63FF] focus:outline-none focus:ring-0 transition-colors"
+                  className="bg-[#080b0f] border border-white/10 border-solid rounded-lg px-4 py-3 text-white placeholder-white/20 focus:border-white/30 focus:outline-none focus:ring-0 transition-colors"
                 />
               </div>
             )}
@@ -170,7 +170,7 @@ export default function Auth() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="bg-[#080b0f] border border-white/10 border-solid rounded-lg px-4 py-3 text-white placeholder-white/20 focus:border-[#6C63FF] focus:outline-none focus:ring-0 transition-colors"
+                className="bg-[#080b0f] border border-white/10 border-solid rounded-lg px-4 py-3 text-white placeholder-white/20 focus:border-white/30 focus:outline-none focus:ring-0 transition-colors"
               />
             </div>
 
@@ -181,14 +181,14 @@ export default function Auth() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={tab === 'login' ? "••••••••" : "Min 6 characters"}
-                className="bg-[#080b0f] border border-white/10 border-solid rounded-lg px-4 py-3 text-white placeholder-white/20 focus:border-[#6C63FF] focus:outline-none focus:ring-0 transition-colors"
+                className="bg-[#080b0f] border border-white/10 border-solid rounded-lg px-4 py-3 text-white placeholder-white/20 focus:border-white/30 focus:outline-none focus:ring-0 transition-colors"
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#6C63FF] text-white py-3 rounded-lg font-semibold hover:bg-[#5a52e0] active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2 disabled:opacity-70 disabled:active:scale-100"
+              className="w-full bg-white text-black py-3 rounded-lg font-semibold hover:bg-white/90 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2 disabled:opacity-70 disabled:active:scale-100"
             >
               {loading && <Loader2 className="w-5 h-5 animate-spin" />}
               {tab === 'login' ? 'Sign In' : 'Create Account'}
@@ -219,7 +219,7 @@ export default function Auth() {
             {tab === 'login' ? "Don't have an account? " : "Already have an account? "}
             <button 
               onClick={() => { setTab(tab === 'login' ? 'register' : 'login'); setPassword(''); }}
-              className="text-[#6C63FF] hover:underline hover:text-[#5a52e0] transition-colors"
+              className="text-white hover:underline hover:text-white/80 transition-colors"
             >
               {tab === 'login' ? 'Create one' : 'Sign in'}
             </button>

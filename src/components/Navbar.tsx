@@ -79,7 +79,7 @@ export default function Navbar() {
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
             <img src={codereelsLogo} alt="CodeReels" className="h-8 w-auto" />
-            <BlurText text="CodeReels" className="font-bold text-lg gradient-text hidden sm:block" />
+            <BlurText text="CodeReels" className="font-bold text-lg text-white hidden sm:block" />
           </Link>
 
           {/* Desktop Nav */}
@@ -89,13 +89,13 @@ export default function Navbar() {
                 <Button
                   variant={isActive(path) ? 'default' : 'ghost'}
                   size="sm"
-                  className={`gap-2 transition-all relative ${isActive(path) ? 'gradient-primary glow-primary' : ''}`}
+                  className={`gap-2 transition-all relative ${isActive(path) ? 'bg-white text-black hover:bg-white/90' : 'text-white/50 hover:text-white'}`}
                 >
                   <Icon className="w-4 h-4" />
                   <span className="hidden lg:inline">{label}</span>
                   {label === 'Messages' && unreadDMs > 0 && (
                     <span
-                      className="absolute -top-1 -right-1 flex items-center justify-center rounded-full bg-primary text-black font-bold"
+                      className="absolute -top-1 -right-1 flex items-center justify-center rounded-full bg-white text-black font-bold"
                       style={{ width: '16px', height: '16px', fontSize: '9px' }}
                     >
                       {unreadDMs > 9 ? '9+' : unreadDMs}
@@ -108,7 +108,7 @@ export default function Navbar() {
             <Magnet strength={0.2}>
               <Button
                 onClick={() => setUploadOpen(true)}
-                className="gradient-primary gap-2 glow-primary"
+                className="bg-white text-black hover:bg-white/90 gap-2"
                 size="sm"
               >
                 <PlusCircle className="w-4 h-4" />
