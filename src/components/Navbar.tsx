@@ -72,9 +72,9 @@ export default function Navbar() {
             {desktopNavItems.map(({ path, icon: Icon, label }) => (
               <Link key={path} to={path}>
                 <Button
-                  variant={isActive(path) ? 'default' : 'ghost'}
+                  variant="ghost"
                   size="sm"
-                  className={`gap-2 transition-all relative ${isActive(path) ? 'bg-white text-black hover:bg-white/90' : 'text-white/50 hover:text-white'}`}
+                  className={`gap-2 transition-all relative ${isActive(path) ? 'bg-white !text-black hover:bg-white/90 hover:!text-black' : '!text-white/50 hover:!text-white hover:bg-white/8'}`}
                 >
                   <Icon className="w-4 h-4" />
                   <span className="hidden lg:inline">{label}</span>
