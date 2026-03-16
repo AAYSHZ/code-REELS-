@@ -47,12 +47,12 @@ export default function Leaderboard() {
 
   return (
     <div className="min-h-screen pt-20 pb-24 px-4 max-w-2xl mx-auto relative">
-      <Lightning color="#6c63ff" className="fixed inset-0" />
+      <Lightning color="#ffffff" className="fixed inset-0" />
 
       <FadeContent className="relative z-10">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">
-            <SplitText text="Leaderboard" className="gradient-text" />
+          <h1 className="text-2xl font-bold text-white">
+            Leaderboard
           </h1>
           <span className="text-xs font-mono text-muted-foreground bg-[#1A1A1A] border border-white/10 px-3 py-1 rounded-full">
             Resets in {daysLeft}d
@@ -74,7 +74,7 @@ export default function Leaderboard() {
               <button
                 key={s}
                 onClick={() => setSkillFilter(s)}
-                className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all ${skillFilter === s ? 'gradient-primary text-foreground' : 'glass text-muted-foreground'
+                className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all ${skillFilter === s ? 'bg-white text-black font-semibold' : 'bg-transparent border border-white/20 text-white/50 hover:text-white'
                   }`}
               >
                 {s}
@@ -85,7 +85,7 @@ export default function Leaderboard() {
           {TABS.map(t => (
             <TabsContent key={t.value} value={t.value}>
               {loading ? (
-                <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>
+                <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" /></div>
               ) : (
                 <div className="space-y-0 divide-y divide-white/5">
                   {users.map((u, i) => {
@@ -93,7 +93,7 @@ export default function Leaderboard() {
                     let badgeColor = 'bg-gray-800 text-gray-300 border-gray-700';
                     if (badge === 'Coder') badgeColor = 'bg-[#2ED573]/20 text-[#2ED573] border-[#2ED573]/30';
                     if (badge === 'Debugger') badgeColor = 'bg-[#FFA502]/20 text-[#FFA502] border-[#FFA502]/30';
-                    if (badge === 'Architect') badgeColor = 'bg-white/20 text-white border-white/20/30';
+                    if (badge === 'Architect') badgeColor = 'bg-white/20 text-white border-white/20';
                     if (badge === 'Code Master') badgeColor = 'bg-gradient-to-r from-[#FFD700]/20 to-[#FFA502]/20 text-[#FFD700] border-[#FFD700]/30';
 
                     return (

@@ -112,8 +112,8 @@ export default function SearchPage() {
 
   return (
     <FadeContent className="min-h-screen pt-20 pb-24 px-4 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">
-        <SplitText text="Search & Trending" className="gradient-text" />
+      <h1 className="text-2xl font-bold mb-6 text-white">
+        Search & Trending
       </h1>
 
       <div className="flex gap-2 mb-4">
@@ -124,7 +124,7 @@ export default function SearchPage() {
             onChange={e => setQuery(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSearch()}
             placeholder="Search reels or ask anything..."
-            className="pl-10 bg-muted/30 border-border"
+            className="pl-10 bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:border-white/30"
           />
         </div>
       </div>
@@ -132,7 +132,7 @@ export default function SearchPage() {
       <div className="flex items-center gap-2 mb-6 flex-wrap">
         <div className="flex items-center gap-1">
           <Select value={category} onValueChange={v => setCategory(v)}>
-            <SelectTrigger className="w-32 bg-muted/30 border-border text-xs">
+            <SelectTrigger className="w-32 bg-white/5 border border-white/10 text-white text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -148,7 +148,7 @@ export default function SearchPage() {
         </div>
         <div className="flex items-center gap-1">
           <Select value={difficulty} onValueChange={v => setDifficulty(v)}>
-            <SelectTrigger className="w-28 bg-muted/30 border-border text-xs">
+            <SelectTrigger className="w-28 bg-white/5 border border-white/10 text-white text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -161,14 +161,14 @@ export default function SearchPage() {
           <SearchTooltip text={"Filter by difficulty:\n🟢 Easy — Beginner friendly concepts\n🟡 Medium — Requires some experience\n🔴 Hard — Advanced topics, maximum XP reward"} />
         </div>
         <Magnet strength={0.15}>
-          <button onClick={handleSearch} className="gradient-primary px-4 py-2 rounded-lg text-sm font-medium text-foreground glow-primary">
+          <button onClick={handleSearch} className="bg-white px-4 py-2 rounded-lg text-sm font-semibold text-black hover:bg-white/90 transition-colors">
             Search
           </button>
         </Magnet>
         {query && (
           <div className="flex items-center gap-1">
             <Magnet strength={0.15}>
-              <button onClick={handleAiSearch} className="px-4 py-2 rounded-lg text-sm font-medium text-foreground border border-primary/30 hover:bg-primary/10 transition-colors flex items-center gap-1.5">
+              <button onClick={handleAiSearch} className="px-4 py-2 rounded-lg text-sm font-medium text-white border border-white/20 hover:bg-white/8 transition-colors flex items-center gap-1.5 bg-transparent">
                 <Sparkles className="w-3.5 h-3.5" />
                 Ask CR
               </button>
@@ -180,10 +180,10 @@ export default function SearchPage() {
 
       {/* ─── AI Answer Section ─────────────────────────────────────────── */}
       {showAi && (
-        <div className="mb-6 glass rounded-xl p-5 border border-primary/20">
+        <div className="mb-6 rounded-xl p-5 border border-white/10 bg-white/5">
           <div className="flex items-center gap-2 mb-3">
-            <Bot className="w-5 h-5 text-primary" />
-            <span className="text-sm font-semibold text-primary">AI Answer</span>
+            <Bot className="w-5 h-5 text-white" />
+            <span className="text-sm font-semibold text-white">AI Answer</span>
             {aiFromDb && (
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">
                 From CodeReels
@@ -198,7 +198,7 @@ export default function SearchPage() {
 
           {aiSearching ? (
             <div className="flex items-center gap-3 py-4">
-              <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
               <span className="text-sm text-muted-foreground">Searching the internet with AI...</span>
             </div>
           ) : (
@@ -216,7 +216,7 @@ export default function SearchPage() {
                         href={s.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs text-primary/80 hover:text-primary flex items-center gap-1 truncate transition-colors"
+                        className="text-xs text-white/60 hover:text-white flex items-center gap-1 truncate transition-colors"
                       >
                         <ExternalLink className="w-3 h-3 flex-shrink-0" />
                         <span className="truncate">{s.title || s.url}</span>
@@ -232,12 +232,12 @@ export default function SearchPage() {
 
       {/* ─── Reel Results ──────────────────────────────────────────────── */}
       {searching ? (
-        <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>
+        <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" /></div>
       ) : (
         <div className="space-y-3">
           {results.map(r => (
             <TiltedCard key={r.id} tiltAmount={4}>
-              <Link to={`/reel/${r.id}`} className="glass rounded-xl p-4 flex gap-4 hover:border-primary/20 transition-colors">
+              <Link to={`/reel/${r.id}`} className="rounded-xl p-4 flex gap-4 bg-white/5 border border-white/10 hover:border-white/20 transition-colors">
                 <div className="w-20 h-28 rounded-lg bg-muted/30 flex-shrink-0 overflow-hidden">
                   <video src={r.video_url} className="w-full h-full object-cover" />
                 </div>
