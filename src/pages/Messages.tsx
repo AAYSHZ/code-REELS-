@@ -234,11 +234,27 @@ export default function Messages() {
         const enriched = await Promise.all(
             data.map(async (c: any) => {
                 const otherId = c.participant_1 === user.id ? c.participant_2 : c.participant_1;
-                const { data: prof } = await supabase
-                    .from('profiles')
-                    .select('user_id, name, avatar, last_seen')
-                    .eq('user_id', otherId)
-                    .single();
+                let prof = null;
+                try {
+                    const res = await supabase
+                        .from('profiles')
+                        .select('user_id, name, avatar, last_seen')
+                        .eq('user_id', otherId)
+                        .maybeSingle();
+
+                    if (res.error) {
+                        const fallback = await supabase
+                            .from('profiles')
+                            .select('user_id, name, avatar')
+                            .eq('user_id', otherId)
+                            .maybeSingle();
+                        prof = fallback.data;
+                    } else {
+                        prof = res.data;
+                    }
+                } catch (e) {
+                    console.error('Error fetching profile:', e);
+                }
 
                 // Count unread
                 const { count } = await supabase
