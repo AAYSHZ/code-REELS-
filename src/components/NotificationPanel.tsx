@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { Heart, UserPlus, Repeat2 } from 'lucide-react';
+import { UserPlus, Repeat2 } from 'lucide-react';
+import { HeartIcon } from '@/components/ui/animated-state-icons';
 import { motion } from 'framer-motion';
 import AnimatedList from './effects/AnimatedList';
 import type { Notification } from '@/hooks/useNotifications';
@@ -24,13 +25,13 @@ function timeAgo(dateStr: string): string {
 function getIcon(type: string) {
     switch (type) {
         case 'like':
-            return <Heart className="w-4 h-4 text-red-400 fill-red-400 flex-shrink-0" />;
+            return <HeartIcon size={16} color="rgb(248 113 113)" filled={true} className="flex-shrink-0" />;
         case 'follow':
             return <UserPlus className="w-4 h-4 text-blue-400 flex-shrink-0" />;
         case 'repost':
             return <Repeat2 className="w-4 h-4 text-green-400 flex-shrink-0" />;
         default:
-            return <Heart className="w-4 h-4 text-muted-foreground flex-shrink-0" />;
+            return <HeartIcon size={16} color="hsl(var(--muted-foreground))" className="flex-shrink-0" />;
     }
 }
 

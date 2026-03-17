@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Bell } from 'lucide-react';
+import { NotificationIcon } from '@/components/ui/animated-state-icons';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -52,8 +52,13 @@ export default function NotificationDropdown() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="w-5 h-5" />
+        <Button variant="ghost" size="icon" className="relative p-0 hover:bg-transparent">
+          <NotificationIcon 
+            size={24} 
+            color="currentColor" 
+            hasNotification={unreadCount > 0} 
+            className="text-foreground"
+          />
           {unreadCount > 0 && (
             <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-destructive text-[10px] font-bold flex items-center justify-center text-foreground animate-pulse">
               {unreadCount > 9 ? '9+' : unreadCount}

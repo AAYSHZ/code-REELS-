@@ -102,7 +102,7 @@ export default function Home() {
       {/* Scroll container */}
       <div
         ref={scrollRef}
-        className="relative z-10 h-[100dvh] w-full snap-y snap-mandatory overflow-y-scroll"
+        className="relative z-10 h-[100dvh] w-full snap-y snap-mandatory overflow-y-scroll sm:flex sm:flex-col sm:items-center"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         <style>{`div::-webkit-scrollbar { display: none; }`}</style>

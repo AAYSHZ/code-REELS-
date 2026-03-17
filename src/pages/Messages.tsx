@@ -71,6 +71,7 @@ export default function Messages() {
     const inputRef = useRef<HTMLInputElement>(null);
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const imageInputRef = useRef<HTMLInputElement>(null);
+    const deletedConvoIds = useRef<Set<string>>(new Set());
 
     // Message search state
     const [isSearchingMsg, setIsSearchingMsg] = useState(false);
@@ -268,7 +269,9 @@ export default function Messages() {
             })
         );
 
-        setConversations(enriched);
+        // Filter out locally deleted conversations so they don't reappear via realtime refetch
+        const filtered = enriched.filter(c => !deletedConvoIds.current.has(c.id));
+        setConversations(filtered);
         setLoading(false);
     };
 
@@ -382,20 +385,71 @@ export default function Messages() {
 
         if (!confirm('Are you sure you want to delete this conversation? This cannot be undone.')) return;
 
-        const { error } = await supabase
-            .from('conversations')
-            .delete()
-            .eq('id', convoId);
+        try {
+            // Step 1: Get all message IDs in this conversation (needed to delete reactions)
+            const { data: msgData } = await supabase
+                .from('dm_messages')
+                .select('id')
+                .eq('conversation_id', convoId);
 
-        if (error) {
-            toast.error('Failed to delete conversation');
-        } else {
-            toast.success('Conversation deleted');
+            // Step 2: Delete message_reactions for those messages
+            if (msgData && msgData.length > 0) {
+                const msgIds = msgData.map(m => m.id);
+                await supabase
+                    .from('message_reactions')
+                    .delete()
+                    .in('message_id', msgIds);
+            }
+
+            // Step 3: Delete all dm_messages in this conversation
+            const { error: msgDelErr } = await supabase
+                .from('dm_messages')
+                .delete()
+                .eq('conversation_id', convoId);
+
+            if (msgDelErr) {
+                console.error('Failed to delete messages:', msgDelErr);
+                toast.error('Failed to delete conversation messages');
+                return;
+            }
+
+            // Step 4: Now delete the conversation itself
+            const { error: convoDelErr } = await supabase
+                .from('conversations')
+                .delete()
+                .eq('id', convoId);
+
+            if (convoDelErr) {
+                console.error('Failed to delete conversation:', convoDelErr);
+                toast.error('Failed to delete conversation');
+                return;
+            }
+
+            // Step 5: Verify the delete actually worked (RLS can silently block)
+            const { data: checkData } = await supabase
+                .from('conversations')
+                .select('id')
+                .eq('id', convoId)
+                .maybeSingle();
+
+            if (checkData) {
+                // Conversation still exists — RLS is blocking the delete
+                console.error('RLS blocking delete: conversation still exists after delete call');
+                toast.error('Could not delete — you need a DELETE policy on the conversations table in Supabase. Adding to local hide list instead.');
+            } else {
+                toast.success('Conversation deleted');
+            }
+
+            // Either way, hide it locally
+            deletedConvoIds.current.add(convoId);
             if (activeConvo?.id === convoId) {
                 setActiveConvo(null);
                 setMobileShowChat(false);
             }
             setConversations(prev => prev.filter(c => c.id !== convoId));
+        } catch (err) {
+            console.error('deleteConversation error:', err);
+            toast.error('Something went wrong deleting the conversation');
         }
     };
 
@@ -773,7 +827,7 @@ export default function Messages() {
                                     key={c.id}
                                     role="button"
                                     onClick={() => openConversation(c)}
-                                    className={`w-full flex items-center gap-3 px-4 py-3 transition-colors text-left border-b border-border/50 cursor-pointer ${activeConvo?.id === c.id ? 'bg-primary/10' : 'hover:bg-muted/30'
+                                    className={`group w-full flex items-center gap-3 px-4 py-3.5 transition-all duration-200 text-left border-b border-border/50 cursor-pointer ${activeConvo?.id === c.id ? 'bg-primary/10 border-l-2 border-l-primary' : 'hover:bg-muted/40'
                                         }`}
                                 >
                                     <div className="relative">
@@ -807,7 +861,7 @@ export default function Messages() {
                                     <div className="ml-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="w-8 h-8 rounded-full opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity">
+                                                <Button variant="ghost" size="icon" className="w-8 h-8 rounded-full sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 transition-opacity">
                                                     <MoreVertical className="w-4 h-4 text-muted-foreground" />
                                                 </Button>
                                             </DropdownMenuTrigger>

@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ThumbsUp, ThumbsDown, Send } from 'lucide-react';
+import { ThumbsUp, ThumbsDown } from 'lucide-react';
+import { SendIcon } from '@/components/ui/animated-state-icons';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -121,7 +122,7 @@ export default function CommentSection({ reelId, reelOwnerId, open, onOpenChange
               onKeyDown={e => e.key === 'Enter' && handleSubmit()}
             />
             <Button size="icon" onClick={handleSubmit} className="gradient-primary">
-              <Send className="w-4 h-4" />
+              <SendIcon size={16} color="currentColor" />
             </Button>
           </div>
         )}

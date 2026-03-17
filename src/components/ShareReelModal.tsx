@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Copy, Send } from 'lucide-react';
+import { Copy } from 'lucide-react';
+import { SendIcon } from '@/components/ui/animated-state-icons';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
@@ -99,8 +100,8 @@ export default function ShareReelModal({ open, onOpenChange, reelId, onShareComp
                                         </Avatar>
                                         <span className="text-sm font-semibold">{f.name}</span>
                                     </div>
-                                    <Button size="sm" variant="secondary" className="h-8 text-xs rounded-full px-4" disabled={loading} onClick={() => handleSendToUser(f.user_id)}>
-                                        <Send className="w-3 h-3 mr-1.5" /> Send
+                                    <Button size="sm" variant="secondary" className="h-8 text-xs rounded-full px-4 gap-1.5" disabled={loading} onClick={() => handleSendToUser(f.user_id)}>
+                                        <SendIcon size={14} color="currentColor" className="opacity-70" /> Send
                                     </Button>
                                 </div>
                             ))}

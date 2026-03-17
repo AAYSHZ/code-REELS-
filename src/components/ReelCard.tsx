@@ -241,7 +241,7 @@ export default function ReelCard({ reel, uploaderProfile, onDeleted }: ReelCardP
     <>
       <div
         ref={containerRef}
-        className="relative w-full h-[100dvh] flex-shrink-0 snap-start snap-always overflow-hidden bg-black sm:max-w-[420px] sm:mx-auto sm:h-[calc(100vh-2rem)] sm:my-4 sm:rounded-2xl"
+        className="relative w-full h-[100dvh] flex-shrink-0 snap-start snap-always overflow-hidden bg-black sm:aspect-[9/16] sm:h-[calc(100dvh-2rem)] sm:w-auto sm:max-h-[calc(100dvh-2rem)] sm:mx-auto sm:my-4 sm:rounded-2xl"
       >
         <video
           ref={videoRef}
